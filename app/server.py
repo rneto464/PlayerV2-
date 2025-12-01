@@ -22,10 +22,19 @@ from . import config_credentials as creds
 # --- Configurações de Caminhos ---
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Detecta ambiente Vercel (verifica variáveis de ambiente comuns da Vercel)
+IS_VERCEL = (
+    os.environ.get('VERCEL') == '1' or 
+    os.environ.get('VERCEL_ENV') is not None or
+    '/var/task' in os.path.abspath(__file__) or
+    os.path.exists('/var/task')
+)
+
 # Na Vercel, usa /tmp para banco de dados (única área writeable)
 # Em ambiente local, usa o diretório data/
-if os.environ.get('VERCEL'):
+if IS_VERCEL:
     DB_DIR = '/tmp'
+    print(f"Ambiente Vercel detectado. Usando /tmp para banco de dados.")
 else:
     DB_DIR = os.path.join(ROOT_DIR, 'data')
     os.makedirs(DB_DIR, exist_ok=True)
@@ -83,13 +92,13 @@ def setup_application():
             except Exception as e:
                 print(f"AVISO: Diretório {db_dir} não é writeable: {e}")
                 # Tenta usar /tmp como fallback
-                if not os.environ.get('VERCEL'):
+                if not IS_VERCEL:
                     DB_FILE = os.path.join('/tmp', 'banco_musicas.db')
                     print(f"Usando /tmp como fallback: {DB_FILE}")
         except Exception as e:
             print(f"AVISO: Não foi possível criar diretório {db_dir}: {e}")
             # Tenta usar /tmp como fallback
-            if not os.environ.get('VERCEL'):
+            if not IS_VERCEL:
                 DB_FILE = os.path.join('/tmp', 'banco_musicas.db')
                 print(f"Usando /tmp como fallback: {DB_FILE}")
         
