@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comunidade de Playlists - PlayerV2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', 'Roboto', sans-serif; }
+        .btn { padding: 0.5rem 1rem; border-radius: 9999px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s; border: 1px solid transparent; cursor: pointer; }
+        .btn-secondary { background-color: #535353; color: white; }
+        .btn-secondary:hover { background-color: #737373; }
+        .card { background-color: #181818; border-radius: 0.5rem; border: 1px solid #282828; overflow: hidden; transition: background-color 0.2s; }
+        .card:hover { background-color: #282828; }
+        .card-cover-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; aspect-ratio: 1 / 1; background-color: #333; }
+        .card-cover-grid img { width: 100%; height: 100%; object-fit: cover; }
+        .like-btn.liked svg { color: #1DB954; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto p-4 md:p-8">
+        
+        <header class="flex justify-between items-center mb-6">
+            <a href="/player" class="text-3xl font-bold text-white hover:text-green-400 transition-colors">PlayerV2</a>
+            <div id="auth-section"></div>
+        </header>
+
+        <main>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-bold">Playlists da Comunidade</h2>
+                    <p class="text-gray-400 mt-1">Explore as criações mais populares e recentes dos nossos utilizadores.</p>
+                </div>
+                <!-- Futuramente: Botões para ordenar por 'Recentes' e 'Populares' -->
+            </div>
+            
+            <div id="communityPlaylistsContainer">
+                <p id="communityPlaylistsPlaceholder" class="text-gray-500 text-center py-10">A carregar playlists da comunidade...</p>
+                <div id="communityPlaylistsList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                    <!-- Cards de Playlist serão inseridos aqui pelo JavaScript -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const authSection = document.getElementById('auth-section');
+            const communityPlaylistsList = document.getElementById('communityPlaylistsList');
+            const communityPlaylistsPlaceholder = document.getElementById('communityPlaylistsPlaceholder');
+
+            async function checkLoginStatus() {
+                try {
+                    const response = await fetch('/api/user_status');
+                    const data = await response.json();
+                    if (data.logged_in) {
+                        authSection.innerHTML = `<div class="flex items-center gap-4"><span class="text-sm">Logado como: <strong class="text-green-400">${data.display_name}</strong></span><a href="/logout" class="btn btn-secondary text-xs">Logout</a></div>`;
+                        loadCommunityPlaylists();
+                    } else {
+                        window.location.href = '/'; // Redireciona se não estiver logado
+                    }
+                } catch (error) { console.error('Erro de login status:', error); }
+            }
+
+            async function loadCommunityPlaylists() {
+                communityPlaylistsList.innerHTML = '';
+                communityPlaylistsPlaceholder.textContent = 'A carregar...';
+                try {
+                    const response = await fetch('/api/community_playlists');
+                    const playlists = await response.json();
+                    
+                    if (response.ok && playlists.length > 0) {
+                        communityPlaylistsPlaceholder.classList.add('hidden');
+                        playlists.forEach(playlist => {
+                            const card = document.createElement('div');
+                            card.className = 'card flex flex-col';
+                            
+                            const likedClass = playlist.user_has_liked ? 'liked' : '';
+                            
+                            // --- CORREÇÃO 1: Usa 'playlist.playlist_url' que é o nome genérico ---
+                            const coverGridHTML = `
+                                <a ${playlist.playlist_url ? `href="${playlist.playlist_url}" target="_blank" rel="noopener noreferrer"` : 'style="cursor:default;"'} class="block">
+                                    <div class="card-cover-grid">
+                                        ${playlist.cover_urls.map(url => `<img src="${url}" alt="Capa de Álbum">`).join('')}
+                                        ${playlist.cover_urls.length < 4 ? Array(4 - playlist.cover_urls.length).fill('<div class="bg-gray-700"></div>').join('') : ''}
+                                    </div>
+                                </a>
+                            `;
+
+                            // --- MUDANÇA 2: Adiciona um ícone do serviço (Spotify ou YouTube) ---
+                            const serviceIcon = playlist.service_name === 'spotify'
+                                ? `<svg class="service-icon" width="16" height="16" fill="#1DB954" viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.669 11.538a.498.498 0 0 1-.686.165c-1.879-1.147-4.243-1.407-7.028-.77a.499.499 0 0 1-.222-.973c3.048-.696 5.662-.397 7.77.892a.5.5 0 0 1 .166.686zm.979-2.178a.624.624 0 0 1-.858.205c-2.15-1.321-5.428-1.704-7.972-.932a.625.625 0 0 1-.362-1.194c2.905-.881 6.517-.454 8.986 1.063a.624.624 0 0 1 .206.858zm.083-2.29a.75.75 0 0 1-1.026.284c-2.433-1.463-6.53-1.77-9.088-.958a.75.75 0 0 1-.448-1.407c3.111-.916 7.567-.556 10.453 1.258a.75.75 0 0 1 .285 1.025z"/></svg>`
+                                : `<svg class="service-icon" width="16" height="16" fill="#FF0000" viewBox="0 0 16 16"><path d="M8.051 1.999h.089c.822.003 4.987.033 6.11.335a2.01 2.01 0 0 1 1.415 1.42c.101.38.172.883.22 1.402l.01.104.022.26.008.104c.065.914.073 1.77.074 1.957v.075c-.001.194-.01 1.108-.082 2.06l-.008.105-.022.26-.01.104c-.048.519-.119 1.023-.22 1.402a2.007 2.007 0 0 1-1.415 1.42c-1.16.312-5.569.334-6.18.335h-.142c-.309 0-1.587-.006-2.927-.052l-.17-.006-.087-.004-.171-.007-.086-.003c-1.702-.065-2.887-.225-3.465-.417a2.007 2.007 0 0 1-1.414-1.419c-.111-.417-.185-.986-.235-1.558L.09 9.82l-.008-.104A31.4 31.4 0 0 1 0 7.68v-.123c.002-.215.01-.958.064-1.778l.007-.103.022-.26.01-.104c.048-.519.119-1.023.22-1.402a2.007 2.007 0 0 1 1.415-1.42c.487-.13 1.544-.21 2.654-.26l.17-.007.086-.003.171-.007.087-.004.17-.006.087-.004c1.34-.046 2.617-.052 2.927-.052zM6.425 10.443V4.817l4.15 2.813-4.15 2.813z"/></svg>`;
+
+                            const cardContentHTML = `
+                                <div class="p-4 flex flex-col flex-grow">
+                                    <h3 class="font-bold truncate">${playlist.name}</h3>
+                                    <div class="flex justify-between items-center mt-1">
+                                        <p class="text-sm text-gray-400 flex-grow">Por ${playlist.creator}</p>
+                                        ${serviceIcon}
+                                    </div>
+                                    <div class="flex justify-between items-center mt-3">
+                                        <button class="like-btn p-1 ${likedClass}" data-playlist-id="${playlist.id}" title="Gostar">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-heart-fill" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"/></svg>
+                                        </button>
+                                        <span class="text-sm font-bold like-count">${playlist.like_count}</span>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            card.innerHTML = coverGridHTML + cardContentHTML;
+                            communityPlaylistsList.appendChild(card);
+                        });
+                    } else {
+                        communityPlaylistsPlaceholder.textContent = 'Nenhuma playlist encontrada na comunidade ainda.';
+                    }
+                } catch (error) {
+                    console.error("Erro ao carregar playlists:", error);
+                    communityPlaylistsPlaceholder.textContent = 'Erro ao carregar playlists.';
+                }
+            }
+            
+            communityPlaylistsList.addEventListener('click', async (event) => {
+                const likeButton = event.target.closest('.like-btn');
+                if (!likeButton) return;
+
+                const card = likeButton.closest('.card');
+                const playlistId = likeButton.dataset.playlistId;
+                const likeCountSpan = card.querySelector('.like-count');
+
+                try {
+                    const response = await fetch(`/api/playlist/${playlistId}/toggle_like`, { method: 'POST' });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        likeButton.classList.toggle('liked', data.liked);
+                        likeCountSpan.textContent = data.new_like_count;
+                    }
+                } catch (error) {
+                    console.error('Erro ao gostar da playlist:', error);
+                }
+            });
+
+            checkLoginStatus();
+        });
+    </script>
+</body>
+</html>

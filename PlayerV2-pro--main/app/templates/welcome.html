@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bem-vindo ao PlayerV2 - IA Music Discovery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        /* A classe .login-btn foi removida e as suas propriedades movidas para as tags com Tailwind */
+        .btn-spotify { background-color: #1DB954; color: white; }
+        .btn-spotify:hover { background-color: #1ED760; transform: scale(1.05); }
+        
+        .btn-youtube { background-color: #FF0000; color: white; }
+        .btn-youtube:hover { background-color: #cc0000; transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    <div class="text-center p-8 max-w-lg mx-auto">
+        <header class="mb-8">
+            <h1 class="text-5xl font-bold text-white">PlayerV2</h1>
+            <p class="text-gray-400 mt-2 text-lg">Descubra músicas através das suas imagens.</p>
+        </header>
+
+        <main>
+            <p class="mb-6">Para começar, escolha o seu serviço de música preferido:</p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                
+                <a href="/login/spotify" class="btn-spotify inline-flex items-center justify-center gap-3 py-3 px-6 rounded-full font-bold uppercase tracking-wider transition-all duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16" class="flex-shrink-0">
+                        <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.669 11.538a.498.498 0 0 1-.686.165c-1.879-1.147-4.243-1.407-7.028-.77a.499.499 0 0 1-.222-.973c3.048-.696 5.662-.397 7.77.892a.5.5 0 0 1 .166.686zm.979-2.178a.624.624 0 0 1-.858.205c-2.15-1.321-5.428-1.704-7.972-.932a.625.625 0 0 1-.362-1.194c2.905-.881 6.517-.454 8.986 1.063a.624.624 0 0 1 .206.858zm.083-2.29a.75.75 0 0 1-1.026.284c-2.433-1.463-6.53-1.77-9.088-.958a.75.75 0 0 1-.448-1.407c3.111-.916 7.567-.556 10.453 1.258a.75.75 0 0 1 .285 1.025z"/>
+                    </svg>
+                    <span>Entrar com Spotify</span>
+                </a>
+
+                <a href="/login/youtube" class="btn-youtube inline-flex items-center justify-center gap-3 py-3 px-6 rounded-full font-bold uppercase tracking-wider transition-all duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16" class="flex-shrink-0">
+                        <path d="M8.051 1.999h.089c.822.003 4.987.033 6.11.335a2.01 2.01 0 0 1 1.415 1.42c.101.38.172.883.22 1.402l.01.104.022.26.008.104c.065.914.073 1.77.074 1.957v.075c-.001.194-.01 1.108-.082 2.06l-.008.105-.022.26-.01.104c-.048.519-.119 1.023-.22 1.402a2.007 2.007 0 0 1-1.415 1.42c-1.16.312-5.569.334-6.18.335h-.142c-.309 0-1.587-.006-2.927-.052l-.17-.006-.087-.004-.171-.007-.086-.003c-1.702-.065-2.887-.225-3.465-.417a2.007 2.007 0 0 1-1.414-1.419c-.111-.417-.185-.986-.235-1.558L.09 9.82l-.008-.104A31.4 31.4 0 0 1 0 7.68v-.123c.002-.215.01-.958.064-1.778l.007-.103.022-.26.01-.104c.048-.519.119-1.023.22-1.402a2.007 2.007 0 0 1 1.415-1.42c.487-.13 1.544-.21 2.654-.26l.17-.007.086-.003.171-.007.087-.004.17-.006.087-.004c1.34-.046 2.617-.052 2.927-.052zM6.425 10.443V4.817l4.15 2.813-4.15 2.813z"/>
+                    </svg>
+                    <span>Entrar com YouTube</span>
+                </a>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
+

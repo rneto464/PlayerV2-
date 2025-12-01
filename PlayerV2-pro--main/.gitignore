@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Credenciais e Configurações Sensíveis
+config/*.json
+config/config_credentials.py
+!config/config_credentials.py.example
+
+# Banco de Dados
+data/*.db
+data/*.sqlite
+
+# Uploads Temporários
+temp_uploads/*
+!temp_uploads/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# Mídia
+media/*
+!media/.gitkeep
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/

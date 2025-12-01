@@ -1,0 +1,82 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Credenciais e configurações sensíveis
+config/google-credentials.json
+config/youtube-credentials.json
+config/config_credentials.py
+*.json
+!package.json
+!package-lock.json
+
+# Banco de dados
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# Uploads temporários
+temp_uploads/*
+!temp_uploads/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# Mídia
+media/*
+!media/.gitkeep
+minhas_musicas/*
+*.mp3
+*.mp4
+*.wav
+*.flac
+*.m4a
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Cache e tokens
+.cache
+.spotify_token_cache*
+*.token
+
+# Outros
+*.log
+*.tmp
+*.bak

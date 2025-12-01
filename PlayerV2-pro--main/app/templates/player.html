@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="pt" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayerV2 - IA Music Discovery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', 'Roboto', sans-serif; }
+        .frame { background-color: #181818; border-radius: 0.5rem; padding: 1.5rem; border: 1px solid #282828; }
+        .btn { padding: 0.5rem 1rem; border-radius: 9999px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s; border: 1px solid transparent; cursor: pointer; }
+        .btn-spotify { background-color: #1DB954; color: white; }
+        .btn-spotify:hover { background-color: #1ED760; transform: scale(1.05); }
+        .btn-youtube { background-color: #FF0000; color: white; }
+        .btn-youtube:hover { background-color: #cc0000; transform: scale(1.05); }
+        .btn-secondary { background-color: #535353; color: white; }
+        .btn-secondary.active { background-color: #737373; } /* Estilo para o botão ativo */
+        .btn-secondary:hover { background-color: #737373; }
+        .btn-danger { background-color: #d9534f; color: white; }
+        .btn-danger:hover { background-color: #c9302c; }
+        .list-item:hover, .list-item-playlist:hover { background-color: #282828; }
+        .list-item-playlist .playlist-name { cursor: pointer; }
+        .feedback-btn { font-size: 1.25rem; transition: all 0.2s; background: none; border: none; padding: 0.25rem; cursor: pointer; color: #737373; }
+        .feedback-btn:hover { transform: scale(1.2); color: #e0e0e0; }
+        .feedback-btn.liked svg { color: #1DB954; } 
+        .feedback-btn.disliked svg { color: #d9534f; }
+        .playlist-input { background-color: #333; border: 1px solid #535353; color: #e0e0e0; border-radius: 0.25rem; padding: 0.5rem; width: 100%;}
+        .action-btn { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; }
+        .image-drop-zone { border-color: #4a5568; transition: all 0.2s; }
+        /* Adicionado para os botões de toggle */
+        .btn-secondary.active { background-color: #737373; border-color: #e0e0e0; } 
+        /* Classes dinâmicas para a zona de drop */
+        .image-drop-zone.dragover.spotify { border-color: #1DB954; background-color: rgba(29, 185, 84, 0.1); }
+        .image-drop-zone.dragover.youtube { border-color: #FF0000; background-color: rgba(255, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto p-4">
+        
+        <header class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-6">
+                <h1 class="text-3xl font-bold text-white">PlayerV2</h1>
+                <a href="/community" class="text-sm text-gray-300 hover:text-white border-b-2 border-transparent hover:border-white transition-colors">Comunidade</a>
+            </div>
+            <div id="auth-section"></div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 flex flex-col gap-8">
+                <div class="frame">
+                    <h2 class="text-xl font-bold mb-4 text-center">Recomendações por Ambiente</h2>
+                    
+                    <div class="flex justify-center gap-4 mb-4 border-b pb-4">
+                        <button id="switchToUploadBtn" class="btn btn-secondary text-sm active">📷 Carregar Imagem</button>
+                        <button id="switchToCameraBtn" class="btn btn-secondary text-sm">📹 Usar Câmara</button>
+                    </div>
+
+                    <div id="uploadView">
+                        <div class="flex flex-col md:flex-row items-center justify-center gap-6">
+                            <div>
+                                <input type="file" id="imageInput" class="hidden" accept="image/*">
+                                <button id="uploadButton" class="btn">Selecionar Ficheiro</button>
+                            </div>
+                            <div id="imagePreviewContainer" class="w-40 h-40 bg-gray-800 rounded-lg flex items-center justify-center border-2 border-dashed image-drop-zone cursor-pointer text-center p-2">
+                                <span id="imagePreviewText" class="text-gray-500">Clique ou Arraste</span>
+                                <img id="imagePreview" src="#" alt="Preview" class="hidden w-full h-full object-cover rounded-lg">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="cameraView" class="hidden">
+                        <div class="flex flex-col items-center justify-center gap-4">
+                            <video id="cameraFeed" width="480" height="360" autoplay playsinline class="rounded-lg bg-black"></video>
+                            <canvas id="snapshotCanvas" style="display:none;"></canvas>
+                            <button id="toggleRealtimeBtn" class="btn">Ativar Recomendações em Tempo Real</button>
+                        </div>
+                    </div>
+
+                    <div id="status" class="text-center mt-4 text-gray-400 italic">Selecione uma imagem ou ative a câmara...</div>
+                </div>
+                <div class="frame flex-grow flex flex-col">
+                    <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                        <h2 id="recommendationsTitle" class="text-xl font-bold">Recomendações</h2>
+                        <div id="playlistGlobalActions" class="flex items-center gap-2 hidden">
+                            <button id="likePlaylistButton" class="feedback-btn" title="Gostei desta playlist">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"/></svg>
+                            </button>
+                            <button id="dislikePlaylistButton" class="feedback-btn" title="Não gostei desta playlist">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-1.113 2.175-.246 5.258 1.95 7.452l.748.818.748.818L8 15.01l.255-.286.748-.818.748-.818c2.196-2.194 3.063-5.277 1.95-7.452C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-2.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-2.042 23.333 4.867 8 15z"/></svg>
+                            </button>
+                            <button id="refreshButton" class="btn btn-secondary text-xs">🔄 Refazer</button>
+                        </div>
+                    </div>
+                    <div id="playlistCreationActions" class="mb-4 hidden">
+                        <label for="playlistNameInput" class="block text-sm font-semibold mb-2" >Nome da Playlist:</label>
+                        <div class="flex gap-4">
+                            <input type="text" spellcheck="false" id="playlistNameInput" class="playlist-input flex-grow p-2">
+                            <button id="createPlaylistButton" class="btn text-xs hidden">💾 Criar</button>
+                        </div>
+                    </div>
+                    <div id="recommendationsList" class="flex-grow max-h-96 overflow-y-auto">
+                        <p class="text-gray-500">As recomendações aparecerão aqui.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-1 frame flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Suas Playlists Locais</h2>
+                </div>
+                <div id="savedPlaylistsContainer" class="flex-grow max-h-[30rem] overflow-y-auto">
+                    <p id="savedPlaylistsPlaceholder" class="text-gray-500">Faça login para ver as suas playlists.</p>
+                    <div id="savedPlaylistsList" class="space-y-2"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const authSection = document.getElementById('auth-section');
+            const uploadButton = document.getElementById('uploadButton');
+            const imageInput = document.getElementById('imageInput');
+            const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+            const imagePreview = document.getElementById('imagePreview');
+            const imagePreviewText = document.getElementById('imagePreviewText');
+            const statusDiv = document.getElementById('status');
+            const recommendationsList = document.getElementById('recommendationsList');
+            const recommendationsTitle = document.getElementById('recommendationsTitle');
+            const playlistGlobalActions = document.getElementById('playlistGlobalActions');
+            const createPlaylistButton = document.getElementById('createPlaylistButton');
+            const refreshButton = document.getElementById('refreshButton');
+            const likePlaylistButton = document.getElementById('likePlaylistButton');
+            const dislikePlaylistButton = document.getElementById('dislikePlaylistButton');
+            const playlistCreationActions = document.getElementById('playlistCreationActions');
+            const playlistNameInput = document.getElementById('playlistNameInput');
+            const savedPlaylistsList = document.getElementById('savedPlaylistsList');
+            const savedPlaylistsPlaceholder = document.getElementById('savedPlaylistsPlaceholder');
+            const switchToUploadBtn = document.getElementById('switchToUploadBtn');
+            const switchToCameraBtn = document.getElementById('switchToCameraBtn');
+            const uploadView = document.getElementById('uploadView');
+            const cameraView = document.getElementById('cameraView');
+            const video = document.getElementById('cameraFeed');
+            const canvas = document.getElementById('snapshotCanvas');
+            const toggleBtn = document.getElementById('toggleRealtimeBtn');
+
+            let currentRecommendations = [];
+            let currentTags = [];
+            let currentUser = null;
+            let intervalId = null;
+            let currentImageBase64 = null; 
+
+            function updateThemeColors(service) {
+                const primaryButtons = [uploadButton, createPlaylistButton, toggleBtn]; 
+                const isSpotify = service === 'spotify';
+                const primaryClass = isSpotify ? 'btn-spotify' : 'btn-youtube';
+                const secondaryClass = isSpotify ? 'btn-youtube' : 'btn-spotify';
+                const nameColorClass = isSpotify ? 'text-green-400' : 'text-red-500';
+                
+                primaryButtons.forEach(button => {
+                    button.classList.remove(secondaryClass);
+                    button.classList.add(primaryClass);
+                });
+                
+                imagePreviewContainer.classList.remove('spotify', 'youtube');
+                imagePreviewContainer.classList.add(service);
+
+                const displayName = currentUser ? currentUser.display_name : '';
+                const serviceName = service ? service.charAt(0).toUpperCase() + service.slice(1) : "Desconhecido";
+                authSection.innerHTML = `<div class="flex items-center gap-4"><span class="text-sm">Logado como: <strong class="${nameColorClass}">${displayName}</strong> via ${serviceName}</span><a href="/logout" class="btn btn-secondary text-xs">Logout</a></div>`;
+            }
+
+            async function checkLoginStatus() {
+                try {
+                    const response = await fetch('/api/user_status');
+                    const data = await response.json();
+                    currentUser = data.logged_in ? data : null;
+                    if (data.logged_in) {
+                        updateThemeColors(data.service);
+                        
+                        if (data.service === 'spotify') {
+                            createPlaylistButton.textContent = '💾 Criar no Spotify';
+                        } else if (data.service === 'youtube') {
+                            createPlaylistButton.textContent = '💾 Criar no YouTube';
+                        }
+                        
+                        loadSavedPlaylists();
+                    } else {
+                        if(window.location.pathname.includes('/player')) {
+                             window.location.href = '/';
+                        }
+                    }
+                } catch (error) { console.error('Erro de login status:', error); }
+            }
+
+            async function loadSavedPlaylists() {
+                savedPlaylistsList.innerHTML = '';
+                savedPlaylistsPlaceholder.textContent = 'A carregar...';
+                if (!currentUser) {
+                    savedPlaylistsPlaceholder.textContent = 'Faça login para ver as suas playlists.';
+                    return;
+                }
+                try {
+                    const response = await fetch('/api/local_playlists');
+                    const playlists = await response.json();
+                    
+                    if (response.ok && playlists.length > 0) {
+                        savedPlaylistsPlaceholder.classList.add('hidden');
+                        playlists.forEach(playlist => {
+                            const playlistItem = document.createElement('div');
+                            playlistItem.className = 'list-item-playlist flex justify-between items-center p-2 rounded';
+                            playlistItem.innerHTML = `
+                                <span class="flex-grow cursor-pointer view-playlist-btn" data-playlist-id="${playlist.id}" data-playlist-name="${playlist.name}">${playlist.name}</span>
+                                <div class="flex-shrink-0 flex gap-2">
+                                    <button class="rename-btn btn-secondary action-btn" data-playlist-id="${playlist.id}" data-playlist-name="${playlist.name}" title="Renomear">✏️</button>
+                                    <button class="delete-btn btn-danger action-btn" data-playlist-id="${playlist.id}" data-playlist-name="${playlist.name}" title="Apagar">🗑️</button>
+                                </div>`;
+                            savedPlaylistsList.appendChild(playlistItem);
+                        });
+                    } else {
+                        savedPlaylistsPlaceholder.textContent = 'Nenhuma playlist salva.';
+                        savedPlaylistsPlaceholder.classList.remove('hidden');
+                    }
+                } catch (error) { 
+                    console.error("Erro ao carregar playlists:", error);
+                    savedPlaylistsPlaceholder.textContent = 'Erro ao carregar playlists.';
+                }
+            }
+
+            async function startRealtimeAnalysis() {
+                try {
+                    statusDiv.textContent = 'A aceder à câmara...';
+                    playlistGlobalActions.classList.add('hidden'); 
+                    playlistCreationActions.classList.add('hidden');
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    video.srcObject = stream;
+                    video.play(); 
+
+                    statusDiv.textContent = 'Câmara ativa. A analisar ambiente...';
+
+                    if (intervalId) clearInterval(intervalId);
+
+                    intervalId = setInterval(() => {
+                        console.log("A capturar um frame para análise...");
+                        statusDiv.textContent = 'A analisar frame...';
+                        
+                        const context = canvas.getContext('2d');
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                        canvas.toBlob(blob => {
+                            const formData = new FormData();
+                            formData.append('image', blob, 'snapshot.jpg');
+
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                currentImageBase64 = reader.result.split(',')[1]; 
+                            };
+                            reader.readAsDataURL(blob);
+
+                            fetch('/api/recommend_by_image', {
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log("Nova playlist recebida da câmara:", data);
+                                statusDiv.textContent = 'Recomendações atualizadas!';
+                               
+                                displayRecommendations(data, true); 
+                            })
+                            .catch(error => {
+                                console.error("Erro na análise da câmara:", error);
+                                statusDiv.textContent = `Erro na análise: ${error.message}`;
+                                displayRecommendations({ recomendacoes: [] }, true); 
+                            });
+                        }, 'image/jpeg');
+
+                    }, 7000); 
+                    toggleBtn.textContent = "Parar Análise em Tempo Real";
+                } catch (err) {
+                    console.error("Erro ao aceder à câmara:", err);
+                    statusDiv.textContent = "Erro: Não foi possível aceder à câmara.";
+                    alert("Não foi possível aceder à câmara. Verifique as permissões do navegador.");
+                    toggleBtn.textContent = "Ativar Recomendações em Tempo Real"; 
+                    if (video.srcObject) { 
+                        video.srcObject.getTracks().forEach(track => track.stop());
+                    }
+                    if (intervalId) { 
+                        clearInterval(intervalId);
+                        intervalId = null;
+                    }
+                }
+            }
+
+            function stopRealtimeAnalysis() {
+                if (intervalId) {
+                    clearInterval(intervalId);
+                    intervalId = null;
+                }
+                if (video.srcObject) {
+                    video.srcObject.getTracks().forEach(track => track.stop());
+                }
+                statusDiv.textContent = 'Análise em tempo real parada.';
+                toggleBtn.textContent = "Ativar Recomendações em Tempo Real";
+            }
+            
+            toggleBtn.addEventListener('click', () => {
+                if (intervalId) { 
+                    stopRealtimeAnalysis();
+                } else { 
+                    startRealtimeAnalysis();
+                }
+            });
+
+            
+            switchToUploadBtn.addEventListener('click', () => {
+                stopRealtimeAnalysis(); 
+                cameraView.classList.add('hidden');
+                uploadView.classList.remove('hidden');
+                switchToUploadBtn.classList.add('active');
+                switchToCameraBtn.classList.remove('active');
+                statusDiv.textContent = 'Selecione uma imagem para começar...';
+            });
+
+            switchToCameraBtn.addEventListener('click', () => {
+                uploadView.classList.add('hidden');
+                cameraView.classList.remove('hidden');
+                switchToCameraBtn.classList.add('active');
+                switchToUploadBtn.classList.remove('active');
+                
+                statusDiv.textContent = 'Clique "Ativar" para iniciar a câmara...';
+            });
+
+    
+            function handleImageUpload(file) {
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        imagePreview.src = e.target.result;
+                        imagePreview.classList.remove('hidden');
+                        imagePreviewText.classList.add('hidden');
+                        currentImageBase64 = e.target.result.split(',')[1];
+                    };
+                    reader.readAsDataURL(file);
+                    uploadAndRecommend(file);
+                }
+            }
+
+            imagePreviewContainer.addEventListener('click', () => imageInput.click());
+            uploadButton.addEventListener('click', () => imageInput.click()); 
+            imageInput.addEventListener('change', (event) => handleImageUpload(event.target.files[0]));
+            
+            
+            imagePreviewContainer.addEventListener('dragover', (event) => { 
+                event.preventDefault(); 
+                imagePreviewContainer.classList.add('dragover', currentUser ? currentUser.service : 'spotify'); 
+            });
+            imagePreviewContainer.addEventListener('dragleave', () => { 
+                imagePreviewContainer.classList.remove('dragover', 'spotify', 'youtube'); 
+            });
+            imagePreviewContainer.addEventListener('drop', (event) => {
+                event.preventDefault();
+                imagePreviewContainer.classList.remove('dragover', 'spotify', 'youtube');
+                handleImageUpload(event.dataTransfer.files[0]);
+            });
+
+            async function uploadAndRecommend(file) {
+                statusDiv.textContent = 'A analisar imagem e ambiente...';
+                playlistGlobalActions.classList.add('hidden');
+                playlistCreationActions.classList.add('hidden');
+                recommendationsList.innerHTML = '<p class="text-gray-500">A processar...</p>';
+                const formData = new FormData();
+                formData.append('image', file);
+                try {
+                    const response = await fetch('/api/recommend_by_image', { method: 'POST', body: formData });
+                    if (!response.ok) { 
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `Erro do Servidor: ${response.status}`); 
+                    }
+                    const data = await response.json();
+                    statusDiv.textContent = 'Análise concluída. A gerar recomendações...';
+                    displayRecommendations(data, true);
+                } catch (error) { 
+                    console.error('Erro:', error); 
+                    statusDiv.textContent = `Erro: ${error.message}`; 
+                    displayRecommendations({ recomendacoes: [] }, true); 
+                }
+            }
+
+            function displayRecommendations(data, isFeedbackEnabled = true) {
+                console.log("Dados recebidos do backend:", data); 
+
+                currentTags = data.ambiente_detetado || [];
+                currentRecommendations = data.recomendacoes || [];
+                recommendationsTitle.textContent = data.playlist_title || `Recomendações`;
+                
+
+                playlistGlobalActions.classList.toggle('hidden', !isFeedbackEnabled || currentRecommendations.length === 0);
+                playlistCreationActions.classList.toggle('hidden', !currentUser || currentRecommendations.length === 0);
+                
+                if (currentRecommendations.length > 0) {
+                    if (currentUser) {
+                        playlistNameInput.value = data.playlist_title || '';
+                        createPlaylistButton.classList.remove('hidden');
+                    }
+                    recommendationsList.innerHTML = ''; 
+                    currentRecommendations.forEach(track => {
+                        const listItem = document.createElement('div');
+                        listItem.className = 'list-item flex justify-between items-center p-2 rounded-lg';
+
+                        const trackInfo = document.createElement('div');
+                        trackInfo.className = 'flex-grow w-full overflow-hidden mr-4';
+
+                        const titleP = document.createElement('p');
+                        titleP.className = 'font-bold truncate';
+                        titleP.textContent = track.titulo || 'N/A';
+                        
+                        const artistP = document.createElement('p');
+                        artistP.className = 'text-sm text-gray-400 truncate';
+                        artistP.textContent = track.artista || 'N/A';
+
+                        trackInfo.appendChild(titleP);
+                        trackInfo.appendChild(artistP);
+
+                        const actions = document.createElement('div');
+                        actions.className = 'flex items-center gap-4';
+                        
+                        const platformId = track.id; 
+                        const service = track.service_name || (currentUser ? currentUser.service : 'spotify'); 
+                        let previewLink;
+                        if (service === 'youtube' && platformId) {
+                            previewLink = `https://www.youtube.com/watch?v=${platformId}`;
+                        } else if (service === 'spotify' && platformId) {
+                            previewLink = `https://open.spotify.com/track/${platformId}`;
+                        } else {
+                            previewLink = '#'; 
+                        }
+                        
+                        const playButtonColor = service === 'youtube' ? 'text-red-500 hover:text-red-400' : 'text-green-500 hover:text-green-400';
+                        
+                        const feedbackButtonsHTML = isFeedbackEnabled && currentUser && currentUser.service === 'spotify' ? `
+                            <button class="feedback-btn like-track-btn" title="Gosto" data-rating="1" data-track='${JSON.stringify(track)}'>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"/></svg>
+                            </button>
+                            <button class="feedback-btn dislike-track-btn" title="Não Gosto" data-rating="-1" data-track='${JSON.stringify(track)}'>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-1.113 2.175-.246 5.258 1.95 7.452l.748.818.748.818L8 15.01l.255-.286.748-.818.748-.818c2.196-2.194 3.063-5.277 1.95-7.452C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-2.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-2.042 23.333 4.867 8 15z"/></svg>
+                            </button>
+                        ` : '';
+
+                        actions.innerHTML = `
+                            ${feedbackButtonsHTML}
+                            <a href="${previewLink}" target="_blank" title="Abrir na plataforma" class="text-2xl ${playButtonColor} transition-colors">▶️</a>
+                        `;
+                        listItem.appendChild(trackInfo);
+                        listItem.appendChild(actions);
+                        recommendationsList.appendChild(listItem);
+                    });
+                } else {
+                    recommendationsList.innerHTML = '<p class="text-gray-500">Nenhuma música encontrada para este ambiente.</p>';
+                }
+            }
+            
+            async function handleApiAction(url, options) {
+                statusDiv.textContent = 'A processar o seu pedido...';
+                try {
+                    const response = await fetch(url, options);
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error || `Erro ${response.status}`);
+                    if (options.method !== 'GET') {
+                        alert(result.message || 'Operação bem-sucedida!');
+                    }
+                    statusDiv.textContent = 'Pedido concluído.';
+                    return result;
+                } catch (error) {
+                    console.error('Erro na ação da API:', error);
+                    alert(`Erro: ${error.message}`);
+                    statusDiv.textContent = `Erro: ${error.message}`;
+                    return null;
+                }
+            }
+
+            
+            createPlaylistButton.addEventListener('click', () => {
+                if (!currentUser) return;
+                const playlistName = playlistNameInput.value.trim() || recommendationsTitle.textContent;
+                if (!playlistName) { alert("Introduza um nome para a playlist."); return; }
+                
+                handleApiAction('/api/create_playlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: playlistName, 
+                        tracks: currentRecommendations,
+                        cover_image_base64: currentImageBase64 
+                    })
+                }).then(result => {
+                    if (result && result.success) {
+                        loadSavedPlaylists(); 
+                        currentImageBase64 = null; 
+                    }
+                });
+            });
+            
+           
+            refreshButton.addEventListener('click', async () => {
+                if (currentTags.length === 0) return;
+                statusDiv.textContent = `A refazer recomendações...`;
+                recommendationsList.innerHTML = '<p class="text-gray-500">A processar...</p>';
+                try {
+                    const response = await fetch('/api/recommend_from_tags', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tags: currentTags })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error);
+                    statusDiv.textContent = 'Recomendações atualizadas!';
+                    displayRecommendations(data, true);
+                } catch (error) { console.error('Erro ao refazer:', error); statusDiv.textContent = `Erro: ${error.message}`; }
+            });
+            
+            
+            async function handlePlaylistFeedback(rating) {
+                if (!currentUser || currentUser.service !== 'spotify') { return; }
+                if (currentRecommendations.length === 0) return;
+                await handleApiAction('/api/playlist_feedback', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tracks: currentRecommendations, rating: rating })
+                });
+            }
+            likePlaylistButton.addEventListener('click', () => handlePlaylistFeedback(1));
+            dislikePlaylistButton.addEventListener('click', () => handlePlaylistFeedback(-1));
+
+           
+            recommendationsList.addEventListener('click', async (event) => {
+                const target = event.target;
+                if (target.closest('.feedback-btn')) {
+                    const button = target.closest('.feedback-btn');
+                    if (!currentUser || currentUser.service !== 'spotify') {
+                         alert("A avaliação de músicas está disponível apenas para utilizadores do Spotify.");
+                         return; 
+                    }
+                    button.style.transform = 'scale(1.5)';
+                    setTimeout(() => { button.style.transform = 'scale(1)'; }, 200);
+                    const rating = parseInt(button.dataset.rating, 10);
+                    const trackInfo = JSON.parse(button.dataset.track);
+                    await handleApiAction('/api/feedback', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ track_info: trackInfo, rating: rating })
+                    });
+                }
+            });
+            
+            
+            savedPlaylistsList.addEventListener('click', async (event) => {
+                const target = event.target;
+                const playlistItem = target.closest('.list-item-playlist');
+                if (!playlistItem) return;
+
+                const renameButton = playlistItem.querySelector('.rename-btn');
+                const deleteButton = playlistItem.querySelector('.delete-btn');
+                const viewButton = playlistItem.querySelector('.view-playlist-btn');
+                
+                const playlistId = viewButton.dataset.playlistId; 
+                const oldName = viewButton.dataset.playlistName;
+
+                if (target.closest('.rename-btn')) {
+                    const newName = prompt(`Digite o novo nome para a playlist "${oldName}":`);
+                    if (newName && newName.trim() !== '') {
+                        const result = await handleApiAction(`/api/rename_local_playlist/${playlistId}`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ new_name: newName.trim() })
+                        });
+                        if (result && result.success) loadSavedPlaylists();
+                    }
+                } else if (target.closest('.delete-btn')) {
+                    if (confirm(`Tem a certeza que quer apagar a playlist "${oldName}"?`)) {
+                        const result = await handleApiAction(`/api/delete_local_playlist/${playlistId}`, { method: 'DELETE' });
+                        if (result && result.success) loadSavedPlaylists();
+                    }
+                } else if (target.closest('.view-playlist-btn')) {
+                    statusDiv.textContent = `A carregar músicas da playlist...`;
+                    recommendationsList.innerHTML = '<p class="text-gray-500">A carregar...</p>';
+                    try {
+                        const response = await fetch(`/api/local_playlists/${playlistId}`);
+                        const tracks = await response.json();
+                        if (!response.ok) throw new Error(tracks.error);
+                        displayRecommendations({ 
+                            recomendacoes: tracks, 
+                            ambiente_detetado: [],
+                            playlist_title: `Conteúdo de: ${oldName}`
+                        }, false); 
+                    } catch (error) { 
+                        console.error('Erro ao carregar músicas:', error); 
+                        recommendationsList.innerHTML = `<p class="text-red-500">Erro: ${error.message}</p>`;
+                    }
+                }
+            });
+
+            checkLoginStatus();
+        });
+    </script>
+</body>
+</html>
