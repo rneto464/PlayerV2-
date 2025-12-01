@@ -11,6 +11,8 @@ sys.path.insert(0, current_dir)
 # Importa o app Flask
 from app.server import app
 
-# A Vercel com @vercel/python espera que o app Flask seja acessível
-# O app já está importado e será usado automaticamente pela Vercel
+# A Vercel espera que o app Flask seja exportado como 'handler'
+# ou que seja acessível diretamente como 'app'
+# Exportamos ambos para garantir compatibilidade
+handler = app
 
