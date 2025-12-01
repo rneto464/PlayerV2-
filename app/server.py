@@ -62,15 +62,44 @@ def setup_application():
     
     print("A inicializar os gestores e o motor de recomendação...")
     try:
-        # Configura credenciais do Google (usa variável de ambiente ou arquivo)
-        google_creds = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
-        if not google_creds and os.path.exists(CAMINHO_CREDENCIAL_GOOGLE):
+        # Configura credenciais do Google (suporta múltiplas formas)
+        google_creds_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+        google_creds_json = os.environ.get('GOOGLE_CREDENTIALS_JSON')
+        
+        if google_creds_json:
+            # Se as credenciais estão em formato JSON na variável de ambiente
+            # Cria um arquivo temporário com as credenciais
+            import json
+            try:
+                # Valida se é JSON válido
+                creds_data = json.loads(google_creds_json)
+                # Cria arquivo temporário com as credenciais
+                if IS_VERCEL:
+                    temp_creds_path = '/tmp/google-credentials.json'
+                else:
+                    temp_creds_path = os.path.join(ROOT_DIR, 'google-credentials-temp.json')
+                
+                with open(temp_creds_path, 'w') as f:
+                    json.dump(creds_data, f)
+                
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = temp_creds_path
+                print("Credenciais do Google carregadas a partir da variável de ambiente GOOGLE_CREDENTIALS_JSON")
+            except json.JSONDecodeError as e:
+                print(f"ERRO: GOOGLE_CREDENTIALS_JSON contém JSON inválido: {e}")
+            except Exception as e:
+                print(f"ERRO ao processar GOOGLE_CREDENTIALS_JSON: {e}")
+        elif google_creds_path:
+            # Já está configurado via variável de ambiente (caminho do arquivo)
+            print(f"Usando credenciais do Google do caminho: {google_creds_path}")
+        elif os.path.exists(CAMINHO_CREDENCIAL_GOOGLE):
+            # Usa arquivo local se existir
             os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = CAMINHO_CREDENCIAL_GOOGLE
-        elif google_creds:
-            # Já está configurado via variável de ambiente
-            pass
+            print(f"Usando credenciais do Google do arquivo local: {CAMINHO_CREDENCIAL_GOOGLE}")
         else:
             print("AVISO: Credenciais do Google não encontradas. Algumas funcionalidades podem não funcionar.")
+            print("Para configurar, adicione uma das seguintes variáveis de ambiente na Vercel:")
+            print("  - GOOGLE_APPLICATION_CREDENTIALS: caminho para o arquivo JSON")
+            print("  - GOOGLE_CREDENTIALS_JSON: conteúdo completo do arquivo JSON como string")
         
         # Inicializa cliente Vision (pode falhar se credenciais não estiverem configuradas)
         vision_client = None
