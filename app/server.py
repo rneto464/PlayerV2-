@@ -25,15 +25,44 @@ DB_FILE = os.path.join(ROOT_DIR, 'data', 'banco_musicas.db')
 CAMINHO_CREDENCIAL_GOOGLE = os.path.join(ROOT_DIR, 'google-credentials.json')
 
 # --- Inicialização da Aplicação Flask ---
-app = Flask(__name__, template_folder='templates', static_folder='static')
-app.secret_key = os.urandom(24) 
+# Usa caminhos absolutos para templates e static
+template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+static_dir = os.path.join(os.path.dirname(__file__), 'static')
+app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24).hex())
+
+# Variável global para armazenar o contexto da aplicação (lazy loading)
+app_context = None
+conn = None
 
 def setup_application():
     """Inicializa todos os serviços e gestores e retorna-os num único dicionário de contexto."""
+    global app_context, conn
+    
+    if app_context is not None:
+        return app_context
+    
     print("A inicializar os gestores e o motor de recomendação...")
     try:
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = CAMINHO_CREDENCIAL_GOOGLE
-        vision_client = vision.ImageAnnotatorClient()
+        # Configura credenciais do Google (usa variável de ambiente ou arquivo)
+        google_creds = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+        if not google_creds and os.path.exists(CAMINHO_CREDENCIAL_GOOGLE):
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = CAMINHO_CREDENCIAL_GOOGLE
+        elif google_creds:
+            # Já está configurado via variável de ambiente
+            pass
+        else:
+            print("AVISO: Credenciais do Google não encontradas. Algumas funcionalidades podem não funcionar.")
+        
+        # Inicializa cliente Vision (pode falhar se credenciais não estiverem configuradas)
+        vision_client = None
+        try:
+            vision_client = vision.ImageAnnotatorClient()
+        except Exception as e:
+            print(f"AVISO: Não foi possível inicializar o cliente Vision: {e}")
+        
+        # Cria diretório de dados se não existir
+        os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
         db_connection = sqlite3.connect(DB_FILE, check_same_thread=False)
 
         auth_spotify = SpotifyAuthManager()
@@ -52,18 +81,27 @@ def setup_application():
         
         print("Servidor pronto para receber pedidos.")
         
-        return {
+        app_context = {
             "engine": rec_engine,
             "auth": {"spotify": auth_spotify, "youtube": auth_youtube},
             "services": {"spotify": service_spotify, "youtube": service_youtube},
             "db_connection": db_connection
         }
+        conn = db_connection
+        return app_context
         
     except Exception as e:
-        print(f"ERRO CRÍTICO AO INICIAR SERVIDOR: {e}"); sys.exit(1)
+        print(f"ERRO CRÍTICO AO INICIAR SERVIDOR: {e}")
+        import traceback
+        traceback.print_exc()
+        # Não faz sys.exit() para permitir que a Vercel trate o erro
+        raise
 
-app_context = setup_application()
-conn = app_context['db_connection']
+def get_app_context():
+    """Obtém o contexto da aplicação, inicializando se necessário."""
+    if app_context is None:
+        return setup_application()
+    return app_context
 
 # ===================================================
 # Endpoints da Interface e Autenticação
@@ -85,21 +123,24 @@ def community():
 
 @app.route('/login/spotify')
 def login_spotify():
-    spotify_auth_manager = app_context['auth']['spotify']
+    ctx = get_app_context()
+    spotify_auth_manager = ctx['auth']['spotify']
     oauth_manager = spotify_auth_manager.get_oauth_manager(session)
     auth_url = oauth_manager.get_authorize_url()
     return redirect(auth_url)
 
 @app.route('/login/youtube')
 def login_youtube():
-    youtube_auth_manager = app_context['auth']['youtube']
+    ctx = get_app_context()
+    youtube_auth_manager = ctx['auth']['youtube']
     auth_url, state = youtube_auth_manager.get_auth_url()
     session['oauth_state'] = state
     return redirect(auth_url)
 
 @app.route('/callback/spotify')
 def callback_spotify():
-    spotify_auth_manager = app_context['auth']['spotify']
+    ctx = get_app_context()
+    spotify_auth_manager = ctx['auth']['spotify']
     oauth_manager = spotify_auth_manager.get_oauth_manager(session)
     code = request.args.get('code')
     if code:
@@ -108,13 +149,14 @@ def callback_spotify():
             sp_user = spotify_auth_manager.get_user_client(token_info)
             user_info = sp_user.me()
             
-            cursor = conn.cursor()
+            db_conn = ctx['db_connection']
+            cursor = db_conn.cursor()
             cursor.execute("SELECT id FROM usuarios WHERE service_user_id = ? AND service_name = 'spotify'", (user_info['id'],))
             user_row = cursor.fetchone()
             if not user_row:
                 cursor.execute("INSERT INTO usuarios (service_user_id, service_name, display_name) VALUES (?, 'spotify', ?)",
                                (user_info['id'], user_info['display_name']))
-                conn.commit(); db_user_id = cursor.lastrowid
+                db_conn.commit(); db_user_id = cursor.lastrowid
             else:
                 db_user_id = user_row[0]
             
@@ -130,7 +172,8 @@ def callback_spotify():
 
 @app.route('/callback/youtube')
 def callback_youtube():
-    youtube_auth_manager = app_context['auth']['youtube']
+    ctx = get_app_context()
+    youtube_auth_manager = ctx['auth']['youtube']
     state = session.pop('oauth_state', None)
     if state is None or state != request.args.get('state'): return 'Invalid state parameter.', 400
     try:
@@ -141,13 +184,14 @@ def callback_youtube():
         if not response.get('items'): return "A sua conta Google não tem um canal do YouTube.", 400
         user_channel = response['items'][0]
         user_id_yt, display_name = user_channel['id'], user_channel['snippet']['title']
-        cursor = conn.cursor()
+        db_conn = ctx['db_connection']
+        cursor = db_conn.cursor()
         cursor.execute("SELECT id FROM usuarios WHERE service_user_id = ? AND service_name = 'youtube'", (user_id_yt,))
         user_row = cursor.fetchone()
         if not user_row:
             cursor.execute("INSERT INTO usuarios (service_user_id, service_name, display_name) VALUES (?, 'youtube', ?)",
                            (user_id_yt, display_name))
-            conn.commit(); db_user_id = cursor.lastrowid
+            db_conn.commit(); db_user_id = cursor.lastrowid
         else:
             db_user_id = user_row[0]
         session.update({
@@ -170,13 +214,15 @@ def user_status():
     return jsonify({"logged_in": False})
 
 def _get_active_service():
+    ctx = get_app_context()
     active_service_name = session.get('service')
-    return app_context['services'].get(active_service_name) if active_service_name else None
+    return ctx['services'].get(active_service_name) if active_service_name else None
 
 @app.route('/api/recommend_by_image', methods=['POST'])
 def recommend_by_image_api():
     if 'internal_user_id' not in session: return jsonify({"error": "Utilizador não autenticado."}), 401
-    engine = app_context['engine']; engine.music_service = _get_active_service()
+    ctx = get_app_context()
+    engine = ctx['engine']; engine.music_service = _get_active_service()
     if not engine.music_service: return jsonify({"error": "Serviço de música não encontrado."}), 500
     if 'image' not in request.files: return jsonify({"error": "Nenhum ficheiro de imagem."}), 400
     file = request.files['image']
@@ -194,7 +240,8 @@ def recommend_by_image_api():
 @app.route('/api/recommend_from_tags', methods=['POST'])
 def recommend_from_tags_api():
     if 'internal_user_id' not in session: return jsonify({"error": "Utilizador não autenticado."}), 401
-    engine = app_context['engine']; engine.music_service = _get_active_service()
+    ctx = get_app_context()
+    engine = ctx['engine']; engine.music_service = _get_active_service()
     if not engine.music_service: return jsonify({"error": "Serviço de música não encontrado."}), 500
     data = request.get_json(); tags = data.get('tags')
     if not tags: return jsonify({"error": "Nenhuma tag fornecida."}), 400
@@ -208,9 +255,10 @@ def create_playlist_api():
     data = request.get_json()
     playlist_name, tracks = data.get('name'), data.get('tracks')
     if not playlist_name or not tracks: return jsonify({"error": "Dados em falta."}), 400
+    ctx = get_app_context()
     active_service_name = session['service']
-    active_service = app_context['services'][active_service_name]
-    auth_manager = app_context['auth'][active_service_name]
+    active_service = ctx['services'][active_service_name]
+    auth_manager = ctx['auth'][active_service_name]
     try:
         user_client = None
         if active_service_name == 'spotify':
@@ -232,19 +280,22 @@ def create_playlist_api():
             playlist_url = nova_playlist.get('external_urls', {}).get('youtube') or nova_playlist.get('external_urls', {}).get('spotify', '')
         if not playlist_url:
             playlist_url = f"https://www.youtube.com/playlist?list={nova_playlist.get('id', '')}" if active_service_name == 'youtube' else ''
-        cursor = conn.cursor()
+        db_conn = ctx['db_connection']
+        cursor = db_conn.cursor()
         cursor.execute("INSERT OR IGNORE INTO playlists_salvas (usuario_id, nome_playlist, playlist_url, service_name) VALUES (?, ?, ?, ?)",
                        (session['internal_user_id'], playlist_name, playlist_url, active_service_name))
-        conn.commit()
+        db_conn.commit()
         return jsonify({"success": True, "message": f"Playlist '{playlist_name}' criada com sucesso!", "playlist_url": playlist_url})
     except Exception as e:
-        conn.rollback(); print(f"Erro ao criar playlist: {e}"); return jsonify({"error": f"Erro ao criar a sua playlist: {e}"}), 500
+        ctx = get_app_context()
+        ctx['db_connection'].rollback(); print(f"Erro ao criar playlist: {e}"); return jsonify({"error": f"Erro ao criar a sua playlist: {e}"}), 500
 
 @app.route('/api/local_playlists', methods=['GET'])
 def get_local_playlists():
     if 'internal_user_id' not in session: return jsonify({"error": "Utilizador não autenticado."}), 401
     try:
-        cursor = conn.cursor()
+        ctx = get_app_context()
+        cursor = ctx['db_connection'].cursor()
         playlists = [{"id": row[0], "name": row[1]} for row in cursor.execute("SELECT id, nome_playlist FROM playlists_salvas WHERE usuario_id = ? ORDER BY nome_playlist", (session['internal_user_id'],))]
         return jsonify(playlists)
     except Exception as e:
@@ -254,7 +305,8 @@ def get_local_playlists():
 def get_local_playlist_tracks(playlist_id):
     if 'internal_user_id' not in session: return jsonify({"error": "Utilizador não autenticado."}), 401
     try:
-        cursor = conn.cursor()
+        ctx = get_app_context()
+        cursor = ctx['db_connection'].cursor()
         cursor.execute("SELECT id FROM playlists_salvas WHERE id = ? AND usuario_id = ?", (playlist_id, session['internal_user_id']))
         if not cursor.fetchone(): return jsonify({"error": "Não encontrado."}), 404
         cursor.execute("SELECT musica_id, titulo_musica, artista_musica, preview_url_musica, artista_id, service_name FROM playlist_musicas WHERE playlist_id = ?", (playlist_id,))
@@ -271,7 +323,8 @@ def create_local_playlist():
     if not playlist_name or not tracks: return jsonify({"error": "Dados em falta."}), 400
     active_service_name = session['service']
     try:
-        cursor = conn.cursor()
+        ctx = get_app_context()
+        cursor = ctx['db_connection'].cursor()
         # Verifica se a playlist já existe
         cursor.execute("SELECT id FROM playlists_salvas WHERE usuario_id = ? AND nome_playlist = ? AND service_name = ?", (session['internal_user_id'], playlist_name, active_service_name))
         existing = cursor.fetchone()
@@ -285,7 +338,7 @@ def create_local_playlist():
         for track in tracks:
             cursor.execute("INSERT INTO playlist_musicas (playlist_id, musica_id, titulo_musica, artista_musica, preview_url_musica, artista_id, album_cover_url, service_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                            (playlist_id, track.get('spotify_id'), track.get('titulo'), track.get('artista'), track.get('preview_url'), track.get('artista_id'), track.get('album_cover_url'), active_service_name))
-        conn.commit(); return jsonify({"success": True, "message": "Playlist guardada!"})
+        ctx['db_connection'].commit(); return jsonify({"success": True, "message": "Playlist guardada!"})
     except sqlite3.IntegrityError: return jsonify({"error": f"Já existe uma playlist com o nome '{playlist_name}'."}), 409
     except Exception as e:
         print(f"Erro ao guardar playlist: {e}"); return jsonify({"error": "Erro interno."}), 500
@@ -297,11 +350,12 @@ def rename_playlist_api(playlist_id):
     new_name = data.get('new_name', '').strip()
     if not new_name: return jsonify({"error": "Nome inválido."}), 400
     try:
-        cursor = conn.cursor()
+        ctx = get_app_context()
+        cursor = ctx['db_connection'].cursor()
         cursor.execute("SELECT id FROM playlists_salvas WHERE nome_playlist = ? AND usuario_id = ?", (new_name, session['internal_user_id']))
         if cursor.fetchone(): return jsonify({"error": "Nome já existe."}), 409
         cursor.execute("UPDATE playlists_salvas SET nome_playlist = ? WHERE id = ? AND usuario_id = ?", (new_name, playlist_id, session['internal_user_id']))
-        conn.commit()
+        ctx['db_connection'].commit()
         return jsonify({"success": cursor.rowcount > 0})
     except Exception as e:
         print(f"Erro ao renomear: {e}"); return jsonify({"error": "Erro interno."}), 500
@@ -310,9 +364,10 @@ def rename_playlist_api(playlist_id):
 def delete_playlist_api(playlist_id):
     if 'internal_user_id' not in session: return jsonify({"error": "Utilizador não autenticado."}), 401
     try:
-        cursor = conn.cursor()
+        ctx = get_app_context()
+        cursor = ctx['db_connection'].cursor()
         cursor.execute("DELETE FROM playlists_salvas WHERE id = ? AND usuario_id = ?", (playlist_id, session['internal_user_id']))
-        conn.commit()
+        ctx['db_connection'].commit()
         return jsonify({"success": cursor.rowcount > 0})
     except Exception as e:
         print(f"Erro ao apagar: {e}"); return jsonify({"error": "Erro interno."}), 500
@@ -322,7 +377,8 @@ def get_community_playlists():
     if 'internal_user_id' not in session: return jsonify({"error": "Utilizador não autenticado."}), 401
     current_user_id = session['internal_user_id']
     try:
-        cursor = conn.cursor()
+        ctx = get_app_context()
+        cursor = ctx['db_connection'].cursor()
         query = "SELECT p.id, p.nome_playlist, u.display_name, p.playlist_url, p.service_name FROM playlists_salvas p JOIN usuarios u ON p.usuario_id = u.id ORDER BY p.data_criacao DESC"
         playlists = []
         for p_id, p_name, p_creator, p_url, p_service in cursor.execute(query).fetchall():
@@ -339,12 +395,13 @@ def toggle_playlist_like(playlist_id):
     if 'internal_user_id' not in session: return jsonify({"error": "Utilizador não autenticado."}), 401
     user_id = session['internal_user_id']
     try:
-        cursor = conn.cursor()
+        ctx = get_app_context()
+        cursor = ctx['db_connection'].cursor()
         if cursor.execute("SELECT 1 FROM playlist_likes WHERE playlist_id = ? AND usuario_id = ?", (playlist_id, user_id)).fetchone():
             cursor.execute("DELETE FROM playlist_likes WHERE playlist_id = ? AND usuario_id = ?", (playlist_id, user_id)); liked = False
         else:
             cursor.execute("INSERT INTO playlist_likes (playlist_id, usuario_id) VALUES (?, ?)", (playlist_id, user_id)); liked = True
-        conn.commit()
+        ctx['db_connection'].commit()
         like_count = cursor.execute("SELECT COUNT(*) FROM playlist_likes WHERE playlist_id = ?", (playlist_id,)).fetchone()[0]
         return jsonify({"success": True, "liked": liked, "new_like_count": like_count})
     except Exception as e:
@@ -360,7 +417,8 @@ def feedback_api():
     musica_info, rating = data.get('track_info'), data.get('rating')
     if not musica_info or rating not in [1, -1]: return jsonify({"error": "Dados inválidos."}), 400
     
-    engine = app_context['engine']
+    ctx = get_app_context()
+    engine = ctx['engine']
     # Passa o ID interno para o motor
     sucesso = engine.registrar_feedback_engine(musica_info, rating, session['internal_user_id'])
     
@@ -375,7 +433,8 @@ def playlist_feedback_api():
     lista_de_musicas, rating = data.get('tracks'), data.get('rating')
     if not lista_de_musicas or rating not in [1, -1]: return jsonify({"error": "Dados inválidos."}), 400
     
-    engine = app_context['engine']
+    ctx = get_app_context()
+    engine = ctx['engine']
     # Passa o ID interno para o motor
     sucesso = engine.registrar_feedback_playlist_engine(lista_de_musicas, rating, session['internal_user_id'])
     
