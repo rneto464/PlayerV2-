@@ -108,33 +108,51 @@ def setup_application():
         except Exception as e:
             print(f"AVISO: Não foi possível inicializar o cliente Vision: {e}")
         
+        # Determina o caminho do banco de dados (sempre usa /tmp na Vercel)
+        if IS_VERCEL:
+            db_file_path = '/tmp/banco_musicas.db'
+            db_dir = '/tmp'
+        else:
+            db_file_path = DB_FILE
+            db_dir = os.path.dirname(DB_FILE)
+        
         # Garante que o diretório do banco existe
-        db_dir = os.path.dirname(DB_FILE)
         try:
             os.makedirs(db_dir, exist_ok=True)
+            print(f"Diretório do banco verificado: {db_dir}")
+            
             # Verifica se o diretório é writeable
             test_file = os.path.join(db_dir, '.test_write')
             try:
                 with open(test_file, 'w') as f:
                     f.write('test')
                 os.remove(test_file)
+                print(f"Diretório {db_dir} é writeable")
             except Exception as e:
                 print(f"AVISO: Diretório {db_dir} não é writeable: {e}")
-                # Tenta usar /tmp como fallback
+                # Se não for writeable e não estiver na Vercel, tenta /tmp
                 if not IS_VERCEL:
-                    DB_FILE = os.path.join('/tmp', 'banco_musicas.db')
-                    print(f"Usando /tmp como fallback: {DB_FILE}")
+                    db_file_path = '/tmp/banco_musicas.db'
+                    db_dir = '/tmp'
+                    os.makedirs(db_dir, exist_ok=True)
+                    print(f"Usando /tmp como fallback: {db_file_path}")
         except Exception as e:
             print(f"AVISO: Não foi possível criar diretório {db_dir}: {e}")
-            # Tenta usar /tmp como fallback
+            # Se falhar e não estiver na Vercel, tenta /tmp
             if not IS_VERCEL:
-                DB_FILE = os.path.join('/tmp', 'banco_musicas.db')
-                print(f"Usando /tmp como fallback: {DB_FILE}")
+                db_file_path = '/tmp/banco_musicas.db'
+                db_dir = '/tmp'
+                try:
+                    os.makedirs(db_dir, exist_ok=True)
+                    print(f"Usando /tmp como fallback: {db_file_path}")
+                except Exception as e2:
+                    print(f"ERRO CRÍTICO: Não foi possível criar diretório em /tmp: {e2}")
+                    raise
         
         # Conecta ao banco de dados
         try:
-            db_connection = sqlite3.connect(DB_FILE, check_same_thread=False)
-            print(f"Banco de dados conectado: {DB_FILE}")
+            db_connection = sqlite3.connect(db_file_path, check_same_thread=False)
+            print(f"Banco de dados conectado: {db_file_path}")
             
             # Inicializa as tabelas se o banco estiver vazio
             cursor = db_connection.cursor()
