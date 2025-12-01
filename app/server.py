@@ -106,6 +106,11 @@ def get_app_context():
 # ===================================================
 # Endpoints da Interface e Autenticação
 # ===================================================
+@app.route('/favicon.ico')
+def favicon():
+    """Rota para favicon - retorna 204 No Content"""
+    return '', 204
+
 @app.route('/')
 def welcome():
     if 'internal_user_id' in session: return redirect(url_for('player'))
