@@ -21,7 +21,16 @@ from . import config_credentials as creds
 
 # --- Configurações de Caminhos ---
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_FILE = os.path.join(ROOT_DIR, 'data', 'banco_musicas.db')
+
+# Na Vercel, usa /tmp para banco de dados (única área writeable)
+# Em ambiente local, usa o diretório data/
+if os.environ.get('VERCEL'):
+    DB_DIR = '/tmp'
+else:
+    DB_DIR = os.path.join(ROOT_DIR, 'data')
+    os.makedirs(DB_DIR, exist_ok=True)
+
+DB_FILE = os.path.join(DB_DIR, 'banco_musicas.db')
 CAMINHO_CREDENCIAL_GOOGLE = os.path.join(ROOT_DIR, 'google-credentials.json')
 
 # --- Inicialização da Aplicação Flask ---
@@ -61,9 +70,45 @@ def setup_application():
         except Exception as e:
             print(f"AVISO: Não foi possível inicializar o cliente Vision: {e}")
         
-        # Cria diretório de dados se não existir
-        os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
-        db_connection = sqlite3.connect(DB_FILE, check_same_thread=False)
+        # Garante que o diretório do banco existe
+        db_dir = os.path.dirname(DB_FILE)
+        try:
+            os.makedirs(db_dir, exist_ok=True)
+            # Verifica se o diretório é writeable
+            test_file = os.path.join(db_dir, '.test_write')
+            try:
+                with open(test_file, 'w') as f:
+                    f.write('test')
+                os.remove(test_file)
+            except Exception as e:
+                print(f"AVISO: Diretório {db_dir} não é writeable: {e}")
+                # Tenta usar /tmp como fallback
+                if not os.environ.get('VERCEL'):
+                    DB_FILE = os.path.join('/tmp', 'banco_musicas.db')
+                    print(f"Usando /tmp como fallback: {DB_FILE}")
+        except Exception as e:
+            print(f"AVISO: Não foi possível criar diretório {db_dir}: {e}")
+            # Tenta usar /tmp como fallback
+            if not os.environ.get('VERCEL'):
+                DB_FILE = os.path.join('/tmp', 'banco_musicas.db')
+                print(f"Usando /tmp como fallback: {DB_FILE}")
+        
+        # Conecta ao banco de dados
+        try:
+            db_connection = sqlite3.connect(DB_FILE, check_same_thread=False)
+            print(f"Banco de dados conectado: {DB_FILE}")
+            
+            # Inicializa as tabelas se o banco estiver vazio
+            cursor = db_connection.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='usuarios'")
+            if not cursor.fetchone():
+                print("Inicializando estrutura do banco de dados...")
+                _criar_tabelas(db_connection)
+        except Exception as e:
+            print(f"ERRO: Não foi possível conectar ao banco de dados em {DB_FILE}: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
         auth_spotify = SpotifyAuthManager()
         auth_youtube = YouTubeAuthManager()
@@ -96,6 +141,74 @@ def setup_application():
         traceback.print_exc()
         # Não faz sys.exit() para permitir que a Vercel trate o erro
         raise
+
+def _criar_tabelas(conn):
+    """Cria todas as tabelas necessárias se não existirem."""
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            service_user_id TEXT NOT NULL,
+            service_name TEXT NOT NULL,
+            display_name TEXT,
+            data_primeiro_login DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(service_user_id, service_name)
+        )
+    """)
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS playlists_salvas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL,
+            nome_playlist TEXT NOT NULL,
+            playlist_url TEXT,
+            service_name TEXT NOT NULL,
+            data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        )
+    """)
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS playlist_musicas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            playlist_id INTEGER NOT NULL,
+            musica_id TEXT NOT NULL,
+            titulo_musica TEXT,
+            artista_musica TEXT,
+            preview_url_musica TEXT,
+            artista_id TEXT,
+            album_cover_url TEXT,
+            service_name TEXT NOT NULL,
+            FOREIGN KEY (playlist_id) REFERENCES playlists_salvas (id) ON DELETE CASCADE
+        )
+    """)
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS playlist_likes (
+            playlist_id INTEGER NOT NULL,
+            usuario_id INTEGER NOT NULL,
+            data_like DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (playlist_id, usuario_id),
+            FOREIGN KEY (playlist_id) REFERENCES playlists_salvas (id) ON DELETE CASCADE,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+        )
+    """)
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS historico_reproducao (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL,
+            musica_id TEXT, 
+            artista_id TEXT,
+            rating INTEGER, 
+            data_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+        )
+    """)
+    
+    conn.commit()
+    print("Tabelas criadas/verificadas com sucesso.")
 
 def get_app_context():
     """Obtém o contexto da aplicação, inicializando se necessário."""
