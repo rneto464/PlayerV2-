@@ -13,7 +13,6 @@ os.chdir(root_dir)
 
 from app.server import app
 
-# Exporta o app para a Vercel
-# A Vercel espera que o handler seja o objeto Flask app
-handler = app
+# Exporta o app Flask diretamente para a Vercel
+# A Vercel com @vercel/python espera o objeto Flask app
 
