@@ -61,10 +61,17 @@ def setup_application():
         return app_context
     
     print("A inicializar os gestores e o motor de recomendação...")
+    print(f"Ambiente Vercel detectado: {IS_VERCEL}")
+    print(f"DB_DIR configurado: {DB_DIR}")
+    print(f"DB_FILE configurado: {DB_FILE}")
+    
     try:
         # Configura credenciais do Google (suporta múltiplas formas)
         google_creds_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
         google_creds_json = os.environ.get('GOOGLE_CREDENTIALS_JSON')
+        
+        print(f"GOOGLE_APPLICATION_CREDENTIALS: {'Definido' if google_creds_path else 'Não definido'}")
+        print(f"GOOGLE_CREDENTIALS_JSON: {'Definido' if google_creds_json else 'Não definido'}")
         
         if google_creds_json:
             # Se as credenciais estão em formato JSON na variável de ambiente
@@ -112,9 +119,11 @@ def setup_application():
         if IS_VERCEL:
             db_file_path = '/tmp/banco_musicas.db'
             db_dir = '/tmp'
+            print(f"[DEBUG] Ambiente Vercel: usando {db_file_path}")
         else:
             db_file_path = DB_FILE
             db_dir = os.path.dirname(DB_FILE)
+            print(f"[DEBUG] Ambiente local: usando {db_file_path}")
         
         # Garante que o diretório do banco existe
         try:
