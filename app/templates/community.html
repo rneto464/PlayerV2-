@@ -1,47 +1,148 @@
 <!DOCTYPE html>
-<html lang="pt" class="dark">
+<html lang="pt" class="dark scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comunidade de Playlists - PlayerV2</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        background: '#0a0a0a',
+                        surface: '#121212',
+                        card: '#181818',
+                        spotify: '#1DB954',
+                        youtube: '#FF0000',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', 'Roboto', sans-serif; }
-        .btn { padding: 0.5rem 1rem; border-radius: 9999px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s; border: 1px solid transparent; cursor: pointer; }
-        .btn-secondary { background-color: #535353; color: white; }
-        .btn-secondary:hover { background-color: #737373; }
-        .card { background-color: #181818; border-radius: 0.5rem; border: 1px solid #282828; overflow: hidden; transition: background-color 0.2s; }
-        .card:hover { background-color: #282828; }
-        .card-cover-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; aspect-ratio: 1 / 1; background-color: #333; }
+        body {
+            background-color: #050505;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #22c55e, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass-panel {
+            background: rgba(24, 24, 24, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+        
+        .glass-panel:hover {
+            background: rgba(30, 30, 30, 0.8);
+            transform: translateY(-4px);
+        }
+
+        .card-cover-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            grid-template-rows: 1fr 1fr; 
+            aspect-ratio: 1 / 1; 
+            background-color: #333; 
+        }
         .card-cover-grid img { width: 100%; height: 100%; object-fit: cover; }
-        .like-btn.liked svg { color: #1DB954; }
+        
+        .like-btn.liked svg { fill: #22c55e; color: #22c55e; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
     </style>
 </head>
-<body class="min-h-screen">
-    <div class="container mx-auto p-4 md:p-8">
-        
-        <header class="flex justify-between items-center mb-6">
-            <a href="/player" class="text-3xl font-bold text-white hover:text-green-400 transition-colors">PlayerV2</a>
-            <div id="auth-section"></div>
-        </header>
+<body class="flex flex-col min-h-screen">
 
-        <main>
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-                <div>
-                    <h2 class="text-2xl md:text-3xl font-bold">Playlists da Comunidade</h2>
-                    <p class="text-gray-400 mt-1">Explore as criações mais populares e recentes dos nossos utilizadores.</p>
+    <!-- Navbar -->
+    <nav class="w-full py-6 px-8 flex justify-between items-center fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-md border-b border-white/5">
+        <div class="flex items-center gap-3">
+            <a href="/" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-red-500 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 16 16">
+                        <path d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13c0-1.104 1.12-2 2.5-2s2.5.896 2.5 2zm9-2c0 1.105-1.12 2-2.5 2s-2.5-.895-2.5-2 1.12-2 2.5-2 2.5.895 2.5 2z"/>
+                        <path fill-rule="evenodd" d="M14 11V2h1v9h-1zM6 3v10H5V3h1z"/>
+                        <path d="M5 2.905a1 1 0 0 1 .9-.995l8-.8a1 1 0 0 1 1.1.995V3L5 4V2.905z"/>
+                    </svg>
                 </div>
-                <!-- Futuramente: Botões para ordenar por 'Recentes' e 'Populares' -->
+                <span class="font-bold text-xl tracking-tight text-white">PlayerV2</span>
+            </a>
+        </div>
+
+        <div class="hidden md:flex items-center gap-8">
+            <a href="/player" class="text-sm font-medium text-gray-400 hover:text-white transition-colors">Criar Playlist</a>
+            <a href="/" class="text-sm font-medium text-gray-400 hover:text-white transition-colors">Plataformas</a>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <div id="auth-section">
+                <!-- Populated by JS -->
             </div>
             
-            <div id="communityPlaylistsContainer">
-                <p id="communityPlaylistsPlaceholder" class="text-gray-500 text-center py-10">A carregar playlists da comunidade...</p>
-                <div id="communityPlaylistsList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                    <!-- Cards de Playlist serão inseridos aqui pelo JavaScript -->
-                </div>
-            </div>
-        </main>
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-btn" class="md:hidden text-white p-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 z-40 bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center gap-8 transition-transform duration-300 translate-x-full md:hidden">
+        <button id="close-menu-btn" class="absolute top-8 right-8 text-white p-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+            </svg>
+        </button>
+        <a href="/player" class="text-2xl font-bold text-white hover:text-green-500 transition-colors" onclick="toggleMobileMenu()">Criar Playlist</a>
+        <a href="/" class="text-2xl font-bold text-white hover:text-green-500 transition-colors" onclick="toggleMobileMenu()">Plataformas</a>
     </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow pt-32 px-4 pb-12 container mx-auto max-w-7xl">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-bold mb-2">Comunidade <span class="gradient-text">Vibes</span></h1>
+                <p class="text-gray-400 text-lg">Explore as criações mais populares e recentes dos nossos utilizadores.</p>
+            </div>
+            <!-- Future: Sort buttons -->
+        </div>
+        
+        <div id="communityPlaylistsContainer">
+            <p id="communityPlaylistsPlaceholder" class="text-gray-500 text-center py-20 text-lg">A carregar playlists da comunidade...</p>
+            
+            <div id="communityPlaylistsList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                <!-- Cards de Playlist serão inseridos aqui pelo JavaScript -->
+            </div>
+        </div>
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -53,11 +154,28 @@
                 try {
                     const response = await fetch('/api/user_status');
                     const data = await response.json();
+                    
                     if (data.logged_in) {
-                        authSection.innerHTML = `<div class="flex items-center gap-4"><span class="text-sm">Logado como: <strong class="text-green-400">${data.display_name}</strong></span><a href="/logout" class="btn btn-secondary text-xs">Logout</a></div>`;
+                        // User logged in: Show Avatar + Name + Logout
+                        authSection.innerHTML = `
+                            <div class="flex items-center gap-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-gradient-to-r from-green-500 to-red-500 flex items-center justify-center text-xs font-bold">
+                                        ${data.display_name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <span class="text-sm font-medium hidden sm:block">${data.display_name}</span>
+                                </div>
+                                <a href="/logout" class="text-xs font-medium text-gray-400 hover:text-white border border-white/10 px-3 py-1.5 rounded-full hover:bg-white/5 transition-all">Sair</a>
+                            </div>
+                        `;
                         loadCommunityPlaylists();
                     } else {
-                        window.location.href = '/'; // Redireciona se não estiver logado
+                        // Not logged in
+                        authSection.innerHTML = `
+                            <a href="/login" class="text-sm font-bold text-white bg-white/10 hover:bg-white/20 px-5 py-2.5 rounded-full transition-all">Entrar</a>
+                        `;
+                        // Redirect or show limited view
+                        window.location.href = '/'; 
                     }
                 } catch (error) { console.error('Erro de login status:', error); }
             }
@@ -73,37 +191,37 @@
                         communityPlaylistsPlaceholder.classList.add('hidden');
                         playlists.forEach(playlist => {
                             const card = document.createElement('div');
-                            card.className = 'card flex flex-col';
+                            card.className = 'glass-panel rounded-xl overflow-hidden flex flex-col group h-full';
                             
                             const likedClass = playlist.user_has_liked ? 'liked' : '';
                             
-                            // --- CORREÇÃO 1: Usa 'playlist.playlist_url' que é o nome genérico ---
                             const coverGridHTML = `
-                                <a ${playlist.playlist_url ? `href="${playlist.playlist_url}" target="_blank" rel="noopener noreferrer"` : 'style="cursor:default;"'} class="block">
-                                    <div class="card-cover-grid">
+                                <a ${playlist.playlist_url ? `href="${playlist.playlist_url}" target="_blank" rel="noopener noreferrer"` : 'style="cursor:default;"'} class="block relative overflow-hidden">
+                                    <div class="card-cover-grid group-hover:scale-105 transition-transform duration-500">
                                         ${playlist.cover_urls.map(url => `<img src="${url}" alt="Capa de Álbum">`).join('')}
-                                        ${playlist.cover_urls.length < 4 ? Array(4 - playlist.cover_urls.length).fill('<div class="bg-gray-700"></div>').join('') : ''}
+                                        ${playlist.cover_urls.length < 4 ? Array(4 - playlist.cover_urls.length).fill('<div class="bg-gray-800"></div>').join('') : ''}
                                     </div>
+                                    <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
                                 </a>
                             `;
 
-                            // --- MUDANÇA 2: Adiciona um ícone do serviço (Spotify ou YouTube) ---
                             const serviceIcon = playlist.service_name === 'spotify'
                                 ? `<svg class="service-icon" width="16" height="16" fill="#1DB954" viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.669 11.538a.498.498 0 0 1-.686.165c-1.879-1.147-4.243-1.407-7.028-.77a.499.499 0 0 1-.222-.973c3.048-.696 5.662-.397 7.77.892a.5.5 0 0 1 .166.686zm.979-2.178a.624.624 0 0 1-.858.205c-2.15-1.321-5.428-1.704-7.972-.932a.625.625 0 0 1-.362-1.194c2.905-.881 6.517-.454 8.986 1.063a.624.624 0 0 1 .206.858zm.083-2.29a.75.75 0 0 1-1.026.284c-2.433-1.463-6.53-1.77-9.088-.958a.75.75 0 0 1-.448-1.407c3.111-.916 7.567-.556 10.453 1.258a.75.75 0 0 1 .285 1.025z"/></svg>`
                                 : `<svg class="service-icon" width="16" height="16" fill="#FF0000" viewBox="0 0 16 16"><path d="M8.051 1.999h.089c.822.003 4.987.033 6.11.335a2.01 2.01 0 0 1 1.415 1.42c.101.38.172.883.22 1.402l.01.104.022.26.008.104c.065.914.073 1.77.074 1.957v.075c-.001.194-.01 1.108-.082 2.06l-.008.105-.022.26-.01.104c-.048.519-.119 1.023-.22 1.402a2.007 2.007 0 0 1-1.415 1.42c-1.16.312-5.569.334-6.18.335h-.142c-.309 0-1.587-.006-2.927-.052l-.17-.006-.087-.004-.171-.007-.086-.003c-1.702-.065-2.887-.225-3.465-.417a2.007 2.007 0 0 1-1.414-1.419c-.111-.417-.185-.986-.235-1.558L.09 9.82l-.008-.104A31.4 31.4 0 0 1 0 7.68v-.123c.002-.215.01-.958.064-1.778l.007-.103.022-.26.01-.104c.048-.519.119-1.023.22-1.402a2.007 2.007 0 0 1 1.415-1.42c.487-.13 1.544-.21 2.654-.26l.17-.007.086-.003.171-.007.087-.004.17-.006.087-.004c1.34-.046 2.617-.052 2.927-.052zM6.425 10.443V4.817l4.15 2.813-4.15 2.813z"/></svg>`;
 
                             const cardContentHTML = `
                                 <div class="p-4 flex flex-col flex-grow">
-                                    <h3 class="font-bold truncate">${playlist.name}</h3>
-                                    <div class="flex justify-between items-center mt-1">
-                                        <p class="text-sm text-gray-400 flex-grow">Por ${playlist.creator}</p>
+                                    <h3 class="font-bold truncate text-white mb-1" title="${playlist.name}">${playlist.name}</h3>
+                                    <div class="flex justify-between items-center mb-4">
+                                        <p class="text-xs text-gray-400 flex-grow truncate">por ${playlist.creator}</p>
                                         ${serviceIcon}
                                     </div>
-                                    <div class="flex justify-between items-center mt-3">
-                                        <button class="like-btn p-1 ${likedClass}" data-playlist-id="${playlist.id}" title="Gostar">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-heart-fill" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"/></svg>
+                                    <div class="flex justify-between items-center mt-auto border-t border-white/5 pt-3">
+                                        <button class="like-btn flex items-center gap-1.5 text-gray-400 hover:text-red-500 transition-colors ${likedClass}" data-playlist-id="${playlist.id}" title="Gostar">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-heart-fill transition-transform active:scale-90" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"/></svg>
+                                            <span class="text-xs font-bold like-count">${playlist.like_count}</span>
                                         </button>
-                                        <span class="text-sm font-bold like-count">${playlist.like_count}</span>
+                                        <a ${playlist.playlist_url ? `href="${playlist.playlist_url}"` : ''} target="_blank" class="text-xs font-bold text-gray-500 hover:text-white transition-colors">Abrir</a>
                                     </div>
                                 </div>
                             `;
@@ -124,9 +242,9 @@
                 const likeButton = event.target.closest('.like-btn');
                 if (!likeButton) return;
 
-                const card = likeButton.closest('.card');
+                const card = likeButton.closest('.glass-panel'); // Changed to match new class
                 const playlistId = likeButton.dataset.playlistId;
-                const likeCountSpan = card.querySelector('.like-count');
+                const likeCountSpan = likeButton.querySelector('.like-count');
 
                 try {
                     const response = await fetch(`/api/playlist/${playlistId}/toggle_like`, { method: 'POST' });
@@ -135,11 +253,30 @@
                     if (data.success) {
                         likeButton.classList.toggle('liked', data.liked);
                         likeCountSpan.textContent = data.new_like_count;
+                        
+                        // Optional: Add simple animation
+                        if(data.liked) {
+                            likeButton.querySelector('svg').classList.add('scale-125');
+                            setTimeout(() => likeButton.querySelector('svg').classList.remove('scale-125'), 200);
+                        }
                     }
                 } catch (error) {
                     console.error('Erro ao gostar da playlist:', error);
                 }
             });
+
+            // Mobile Menu Logic
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const closeMenuBtn = document.getElementById('close-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            window.toggleMobileMenu = function() {
+                mobileMenu.classList.toggle('translate-x-full');
+                document.body.classList.toggle('overflow-hidden');
+            }
+
+            if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+            if (closeMenuBtn) closeMenuBtn.addEventListener('click', toggleMobileMenu);
 
             checkLoginStatus();
         });

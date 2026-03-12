@@ -125,10 +125,10 @@ class RecommendationEngine:
         image_base64 = base64.b64encode(image_content).decode('utf-8')
         print(f"[Engine] [Gemini] ✓ Imagem codificada. Tamanho base64: {len(image_base64)} chars")
         
-        prompt = ("From this image, provide two things in JSON format:\n"
-                  "1. A 'playlist_title' (a short, creative, 3-5 word title for a playlist that captures the image's essence).\n"
-                  "2. A 'mood_tags' list (3-5 keywords describing the overall emotion and mood).\n"
-                  "Example: {\"playlist_title\": \"Sunset Chill Vibes\", \"mood_tags\": [\"calm\", \"nostalgic\", \"serene\"]}")
+        prompt = ("Analyze this image and return JSON: "
+                  "{\"playlist_title\": \"Creative Title (3-5 words)\", "
+                  "\"mood_tags\": [\"tag1\", \"tag2\", \"tag3\", \"tag4\", \"tag5\"]} "
+                  "Focus on atmosphere and emotion.")
         
         api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={self.gemini_api_key}"
         payload = {"contents": [{"parts": [{"text": prompt}, {"inline_data": {"mime_type": "image/jpeg", "data": image_base64}}]}]}
@@ -222,7 +222,52 @@ class RecommendationEngine:
             return {}
         except Exception as e:
             print(f"[Engine] Erro ao gerar sementes para o Spotify: {e}"); return {}
+
+    def _construir_query_anime(self, tags):
+        if not tags:
+            return None
+        tags_normalizados = []
+        for t in tags:
+            if t is None:
+                continue
+            s = str(t).strip()
+            if not s:
+                continue
+            tags_normalizados.append(s.lower())
+        if not tags_normalizados:
+            return None
+        texto_tags = " ".join(tags_normalizados)
         
+        # Lógica específica para Roxy Migurdia (Mushoku Tensei)
+        # Detecção melhorada para pegar variações ou combinações de tags
+        has_roxy = "roxy" in texto_tags
+        has_migurdia = "migurdia" in texto_tags
+        has_mushoku = "mushoku" in texto_tags or "tensei" in texto_tags
+        
+        if (has_roxy and has_migurdia) or (has_roxy and has_mushoku):
+            # Retorna uma query mais ampla para encontrar melhores resultados (OST completa ou temas)
+            return "Mushoku Tensei OST Best Collection"
+            
+        if "mushoku tensei" in texto_tags:
+            return "Mushoku Tensei Soundtrack"
+            
+        anime_keywords = ["anime", "manga", "otaku", "isekai", "light novel", "animation", "cartoon"]
+        if not any(k in texto_tags for k in anime_keywords):
+            return None
+            
+        genericos = ["anime", "manga", "character", "girl", "boy", "wallpaper", "illustration", "art", "drawing"]
+        candidatos = sorted(tags_normalizados, key=len, reverse=True)
+        base = None
+        for tag in candidatos:
+            if any(g in tag for g in genericos):
+                continue
+            base = tag
+            break
+        if not base:
+            # Se só tiver tags genéricas, usa "Anime OST" + emoção se possível
+            return "Best Anime Soundtracks"
+            
+        return base + " anime soundtrack"
 
     def recomendar_musicas_por_tags(self, tags, market='BR', limit=25, is_redo=False):
         """Orquestra a recomendação com base no serviço de música ativo."""
@@ -288,6 +333,10 @@ class RecommendationEngine:
 
     def _gerar_prompt_musical_spotify(self, tags, is_redo=False):
         """Gera um prompt de busca criativo para o Spotify."""
+        anime_query = self._construir_query_anime(tags)
+        if anime_query and not is_redo:
+            print(f"[Engine] [Prompt Spotify] Contexto de anime detectado, usando query direta: {anime_query}")
+            return anime_query
         if not self.gemini_api_key: return " ".join(tags[:3])
         redo_instruction = "Give me a COMPLETELY DIFFERENT and UNEXPECTED music prompt for these tags. Think outside the box." if is_redo else ""
         prompt = (f"Given these tags describing an image: {tags}. "
@@ -308,6 +357,10 @@ class RecommendationEngine:
     def _gerar_prompt_musical_youtube(self, tags, is_redo=False):
         """Gera um prompt de busca criativo para o YouTube (igual ao Spotify)."""
         print(f"[Engine] [Prompt YouTube] Gerando prompt para tags: {tags}")
+        anime_query = self._construir_query_anime(tags)
+        if anime_query and not is_redo:
+            print(f"[Engine] [Prompt YouTube] Contexto de anime detectado, usando query direta: {anime_query}")
+            return anime_query
         if not self.gemini_api_key:
             print("[Engine] [Prompt YouTube] ⚠ GEMINI_API_KEY não disponível, usando tags diretas")
             return " ".join(tags[:3]) + " music"

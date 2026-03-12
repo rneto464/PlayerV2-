@@ -1,305 +1,357 @@
 <!DOCTYPE html>
-<html lang="pt" class="dark">
+<html lang="pt" class="dark scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PlayerV2 - IA Music Discovery</title>
+    <title>PlayerV2 - Criar Playlist</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        background: '#0a0a0a',
+                        surface: '#121212',
+                        card: '#181818',
+                        spotify: '#1DB954',
+                        youtube: '#FF0000',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', 'Roboto', sans-serif; }
-        .frame { background-color: #181818; border-radius: 0.5rem; padding: 1.5rem; border: 1px solid #282828; }
-        .btn { padding: 0.5rem 1rem; border-radius: 9999px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s; border: 1px solid transparent; cursor: pointer; }
-        .btn-primary { background-color: #1DB954; color: black; }
-        .btn-primary:hover { background-color: #1ED760; transform: scale(1.05); }
-        .btn-secondary { background-color: #535353; color: white; }
-        .btn-secondary:hover { background-color: #737373; }
-        .btn-danger { background-color: #d9534f; color: white; }
-        .btn-danger:hover { background-color: #c9302c; }
-        .list-item:hover, .list-item-playlist:hover { background-color: #282828; }
-        .list-item-playlist .playlist-name { cursor: pointer; }
-        .feedback-btn { font-size: 1.25rem; transition: transform 0.2s; background: none; border: none; padding: 0.25rem; cursor: pointer; }
-        .feedback-btn:hover { transform: scale(1.2); }
-        .playlist-input { background-color: #333; border: 1px solid #535353; color: #e0e0e0; border-radius: 0.25rem; padding: 0.5rem; width: 100%;}
-        .action-btn { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; }
+        body {
+            background-color: #050505;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(to right, #22c55e, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .upload-zone {
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23333' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+            transition: all 0.3s ease;
+        }
+
+        .upload-zone:hover {
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%2322c55e' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+            background-color: rgba(34, 197, 94, 0.05);
+        }
+
+        .glass-panel {
+            background: rgba(24, 24, 24, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .track-row:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
     </style>
 </head>
-<body class="min-h-screen">
-    <div class="container mx-auto p-4">
-        
-        <header class="flex justify-between items-center mb-6">
-            <div class="flex items-center gap-6">
-                <h1 class="text-3xl font-bold text-white">PlayerV2</h1>
-                <a href="/community" class="text-sm text-gray-300 hover:text-white border-b-2 border-transparent hover:border-white transition-colors">Comunidade</a>
-            </div>
-            <div id="auth-section"></div>
-        </header>
+<body class="flex flex-col min-h-screen">
 
-        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2 flex flex-col gap-8">
-                <div class="frame">
-                    <h2 class="text-xl font-bold mb-4 text-center">Recomendações por Ambiente</h2>
-                    <div class="flex flex-col md:flex-row items-center justify-center gap-6">
-                        <div>
-                            <input type="file" id="imageInput" class="sr-only" accept="image/*" aria-label="Selecionar imagem para análise">
-                            <button id="uploadButton" class="btn btn-primary">📷 Carregar Imagem</button>
-                        </div>
-                        <div id="imagePreviewContainer" class="w-28 h-28 bg-gray-800 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-600">
-                            <span class="text-gray-500">Preview</span>
-                        </div>
-                    </div>
-                    <div id="status" class="text-center mt-4 text-gray-400 italic">Selecione uma imagem para começar...</div>
+    <!-- Navbar -->
+    <nav class="w-full py-6 px-8 flex justify-between items-center fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-md border-b border-white/5">
+        <div class="flex items-center gap-3">
+            <a href="/" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-red-500 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 16 16">
+                        <path d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13c0-1.104 1.12-2 2.5-2s2.5.896 2.5 2zm9-2c0 1.105-1.12 2-2.5 2s-2.5-.895-2.5-2 1.12-2 2.5-2 2.5.895 2.5 2z"/>
+                        <path fill-rule="evenodd" d="M14 11V2h1v9h-1zM6 3v10H5V3h1z"/>
+                        <path d="M5 2.905a1 1 0 0 1 .9-.995l8-.8a1 1 0 0 1 1.1.995V3L5 4V2.905z"/>
+                    </svg>
                 </div>
-                
-                <div class="frame flex-grow flex flex-col">
-                    <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
-                        <h2 id="recommendationsTitle" class="text-xl font-bold">Recomendações</h2>
-                        <div id="playlistGlobalActions" class="flex items-center gap-2 hidden">
-                            <button id="likePlaylistButton" class="feedback-btn" title="Gostei desta playlist">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"/></svg>
-                            </button>
-                            <button id="dislikePlaylistButton" class="feedback-btn" title="Não gostei desta playlist">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-1.113 2.175-.246 5.258 1.95 7.452l.748.818.748.818L8 15.01l.255-.286.748-.818.748-.818c2.196-2.194 3.063-5.277 1.95-7.452C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-2.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-2.042 23.333 4.867 8 15z"/></svg>
-                            </button>
-                            <button id="refreshButton" class="btn btn-secondary text-xs">🔄 Refazer</button>
-                        </div>
-                    </div>
-                    <div id="playlistCreationActions" class="mb-4 hidden">
-                        <label for="playlistNameInput" class="block text-sm font-bold mb-2" >Nome da Playlist:</label>
-                        <div class="flex gap-4">
-                            <input type="text" spellcheck="false" id="playlistNameInput" class="playlist-input flex-grow">
-                            <button id="createPlaylistButton" class="btn btn-primary text-xs hidden">💾 Criar</button>
-                        </div>
-                    </div>
-                    <div id="recommendationsList" class="flex-grow max-h-96 overflow-y-auto">
-                        <p class="text-gray-500">As recomendações aparecerão aqui.</p>
-                    </div>
-                </div>
-            </div>
+                <span class="font-bold text-xl tracking-tight text-white">PlayerV2</span>
+            </a>
+        </div>
 
-            <div class="lg:col-span-1 frame flex flex-col">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold">Suas Playlists Locais</h2>
-                    <button id="saveLocalPlaylistButton" class="btn btn-secondary text-xs hidden" title="Guardar as recomendações atuais como uma nova playlist local">💾 Guardar Atual</button>
-                </div>
-                <div id="savedPlaylistsContainer" class="flex-grow max-h-[30rem] overflow-y-auto">
-                    <p id="savedPlaylistsPlaceholder" class="text-gray-500">Faça login para ver as suas playlists.</p>
-                    <div id="savedPlaylistsList" class="space-y-2"></div>
-                </div>
+        <div class="hidden md:flex items-center gap-8">
+            <a href="/community" class="text-sm font-medium text-gray-400 hover:text-white transition-colors">Comunidade</a>
+            <a href="/" class="text-sm font-medium text-gray-400 hover:text-white transition-colors">Plataformas</a>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <div id="auth-section">
+                <!-- Populated by JS -->
             </div>
-        </main>
+            
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-btn" class="md:hidden text-white p-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 z-40 bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center gap-8 transition-transform duration-300 translate-x-full md:hidden">
+        <button id="close-menu-btn" class="absolute top-8 right-8 text-white p-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+            </svg>
+        </button>
+        <a href="/community" class="text-2xl font-bold text-white hover:text-green-500 transition-colors" onclick="toggleMobileMenu()">Comunidade</a>
+        <a href="/" class="text-2xl font-bold text-white hover:text-green-500 transition-colors" onclick="toggleMobileMenu()">Plataformas</a>
     </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow pt-32 px-4 pb-12 flex flex-col items-center max-w-5xl mx-auto w-full">
+
+        <div class="w-full max-w-2xl mb-8">
+            <div class="bg-black/30 border border-white/10 rounded-xl p-1 flex gap-1">
+                <button id="modeUploadBtn" class="flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-colors bg-white text-black">
+                    Upload de Imagem
+                </button>
+                <button id="modeCameraBtn" class="flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-colors text-gray-400 hover:text-white">
+                    Câmera ao Vivo
+                </button>
+            </div>
+        </div>
+
+        <!-- Upload Section -->
+        <div id="uploadSection" class="w-full text-center transition-all duration-500">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">
+                Envie sua <span class="gradient-text">imagem</span>
+            </h1>
+            <p class="text-gray-400 mb-12 max-w-xl mx-auto">
+                A IA analisa a atmosfera, emoção e contexto visual para gerar uma playlist única.
+            </p>
+
+            <div id="dropZone" class="upload-zone w-full max-w-2xl mx-auto h-80 rounded-2xl flex flex-col items-center justify-center cursor-pointer relative overflow-hidden group">
+                <input type="file" id="imageInput" class="hidden" accept="image/*">
+                
+                <div id="dropZoneContent" class="flex flex-col items-center transition-opacity duration-300">
+                    <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="text-gray-400" viewBox="0 0 16 16">
+                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                            <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 0 1-.708-.708l3-3z"/>
+                        </svg>
+                    </div>
+                    <span class="font-medium text-lg">Clique ou arraste sua imagem</span>
+                    <span class="text-sm text-gray-500 mt-2">JPG, PNG suportados</span>
+                </div>
+
+                <!-- Image Preview (Hidden by default) -->
+                <img id="imagePreview" class="absolute inset-0 w-full h-full object-cover hidden opacity-50" alt="Preview">
+                
+                <!-- Loading State -->
+                <div id="loadingState" class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center hidden z-10">
+                    <div class="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <span id="loadingText" class="text-green-500 font-medium animate-pulse">Analisando imagem...</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="cameraSection" class="w-full text-center transition-all duration-500 hidden">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">
+                Capture com <span class="gradient-text">câmera</span>
+            </h1>
+            <p class="text-gray-400 mb-8 max-w-xl mx-auto">
+                Abra a câmera, capture o momento e gere uma playlist com análise visual em tempo real.
+            </p>
+
+            <div class="w-full max-w-2xl mx-auto rounded-2xl border border-white/10 bg-black/40 p-4 md:p-6">
+                <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-black">
+                    <video id="cameraVideo" class="w-full h-full object-cover" autoplay playsinline muted></video>
+                </div>
+                <canvas id="cameraCanvas" class="hidden"></canvas>
+                <div class="mt-4 flex flex-wrap justify-center gap-3">
+                    <button id="startCameraBtn" class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-bold transition-colors">
+                        Abrir Câmera
+                    </button>
+                    <button id="captureCameraBtn" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                        Capturar e Recomendar
+                    </button>
+                    <button id="stopCameraBtn" class="px-4 py-2 rounded-lg bg-red-600/80 hover:bg-red-500 text-white text-sm font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                        Fechar Câmera
+                    </button>
+                </div>
+                <p id="cameraStatus" class="mt-4 text-sm text-gray-400">Selecione "Abrir Câmera" para começar.</p>
+            </div>
+        </div>
+
+        <!-- Results Section (Hidden initially) -->
+        <div id="resultsSection" class="w-full hidden opacity-0 transition-opacity duration-500 mt-8">
+            
+            <!-- Progress Steps (Visual) -->
+            <div class="flex items-center justify-center gap-4 mb-8">
+                <div class="flex items-center gap-2 text-green-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
+                    <span class="text-sm font-bold uppercase tracking-wider">Playlist Pronta!</span>
+                </div>
+                <div class="h-px w-12 bg-white/10"></div>
+                <div class="flex gap-2">
+                    <div class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-gray-400">Visão</div>
+                    <div class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-gray-400">Emoção</div>
+                    <div class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-gray-400">Geração</div>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl overflow-hidden p-6 md:p-8">
+                
+                <!-- Header: Image + Title + Tags -->
+                <div class="flex flex-col md:flex-row gap-8 mb-8 items-start">
+                    <div class="w-full md:w-48 h-48 rounded-xl overflow-hidden flex-shrink-0 shadow-2xl relative group">
+                        <img id="resultImage" class="w-full h-full object-cover" alt="Playlist Cover">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <button id="reuploadBtn" class="text-xs bg-white text-black px-3 py-1.5 rounded-full font-bold">Trocar Imagem</button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-grow">
+                        <div class="flex items-start justify-between mb-2">
+                            <div>
+                                <h2 class="text-sm text-green-500 font-bold uppercase tracking-wider mb-1">Playlist Gerada</h2>
+                                <h3 id="playlistTitle" class="text-3xl font-bold mb-2">Título da Playlist</h3>
+                                <p class="text-gray-400 text-sm mb-4">Baseada na atmosfera e emoção da sua imagem.</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button id="refreshButton" class="p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors" title="Regerar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tags -->
+                        <div id="tagsContainer" class="flex flex-wrap gap-2 mb-6">
+                            <!-- Tags injected via JS -->
+                        </div>
+                        
+                        <!-- Inline Actions -->
+                        <div class="flex flex-wrap gap-3">
+                            <div class="flex gap-2 w-full sm:w-auto">
+                                <input type="text" id="playlistNameInput" class="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm w-full sm:w-64 focus:outline-none focus:border-green-500/50" placeholder="Nome da playlist...">
+                            </div>
+                            <button id="createPlaylistButton" class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.669 11.538a.498.498 0 0 1-.686.165c-1.879-1.147-4.243-1.407-7.028-.77a.499.499 0 0 1-.222-.973c3.048-.696 5.662-.397 7.77.892a.5.5 0 0 1 .166.686zm.979-2.178a.624.624 0 0 1-.858.205c-2.15-1.321-5.428-1.704-7.972-.932a.625.625 0 0 1-.362-1.194c2.905-.881 6.517-.454 8.986 1.063a.624.624 0 0 1 .206.858zm.084-2.268C10.154 5.56 5.9 5.419 3.438 6.166a.748.748 0 1 1-.434-1.432c2.825-.857 7.523-.692 10.492 1.07a.747.747 0 1 1-.764 1.288z"/></svg>
+                                Salvar no Spotify
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Track List -->
+                <div class="border-t border-white/5 pt-4">
+                    <div class="flex justify-between items-center mb-4 text-xs text-gray-500 uppercase tracking-wider px-4">
+                        <span># &nbsp; Título</span>
+                        <span>Duração</span>
+                    </div>
+                    <div id="recommendationsList" class="flex flex-col gap-1 max-h-[500px] overflow-y-auto">
+                        <!-- Tracks injected via JS -->
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="mt-8 text-center">
+                <button id="analyzeNewButton" class="text-gray-400 hover:text-white text-sm flex items-center justify-center gap-2 mx-auto border border-white/10 px-4 py-2 rounded-lg hover:bg-white/5 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
+                    Analisar Nova Imagem
+                </button>
+            </div>
+        </div>
+
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Elements
             const authSection = document.getElementById('auth-section');
-            const uploadButton = document.getElementById('uploadButton');
+            const dropZone = document.getElementById('dropZone');
             const imageInput = document.getElementById('imageInput');
-            const imagePreviewContainer = document.getElementById('imagePreviewContainer');
-            const statusDiv = document.getElementById('status');
+            const imagePreview = document.getElementById('imagePreview');
+            const dropZoneContent = document.getElementById('dropZoneContent');
+            const loadingState = document.getElementById('loadingState');
+            const loadingText = document.getElementById('loadingText');
+            const modeUploadBtn = document.getElementById('modeUploadBtn');
+            const modeCameraBtn = document.getElementById('modeCameraBtn');
+            const cameraSection = document.getElementById('cameraSection');
+            const cameraVideo = document.getElementById('cameraVideo');
+            const cameraCanvas = document.getElementById('cameraCanvas');
+            const startCameraBtn = document.getElementById('startCameraBtn');
+            const captureCameraBtn = document.getElementById('captureCameraBtn');
+            const stopCameraBtn = document.getElementById('stopCameraBtn');
+            const cameraStatus = document.getElementById('cameraStatus');
+            
+            const uploadSection = document.getElementById('uploadSection');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            const resultImage = document.getElementById('resultImage');
+            const playlistTitle = document.getElementById('playlistTitle');
+            const tagsContainer = document.getElementById('tagsContainer');
             const recommendationsList = document.getElementById('recommendationsList');
-            const recommendationsTitle = document.getElementById('recommendationsTitle');
-            const playlistGlobalActions = document.getElementById('playlistGlobalActions');
+            
             const createPlaylistButton = document.getElementById('createPlaylistButton');
-            const refreshButton = document.getElementById('refreshButton');
-            const playlistCreationActions = document.getElementById('playlistCreationActions');
             const playlistNameInput = document.getElementById('playlistNameInput');
-            const savedPlaylistsList = document.getElementById('savedPlaylistsList');
-            const savedPlaylistsPlaceholder = document.getElementById('savedPlaylistsPlaceholder');
-            const saveLocalPlaylistButton = document.getElementById('saveLocalPlaylistButton');
+            const refreshButton = document.getElementById('refreshButton');
+            const analyzeNewButton = document.getElementById('analyzeNewButton');
+            const reuploadBtn = document.getElementById('reuploadBtn');
 
+            // State
             let currentRecommendations = [];
             let currentTags = [];
             let currentUser = null;
+            let currentInputMode = 'upload';
+            let cameraStream = null;
 
-            async function checkLoginStatus() {
-                try {
-                    const response = await fetch('/api/user_status');
-                    const data = await response.json();
-                    currentUser = data.logged_in ? data : null;
-                    if (data.logged_in) {
-                        const serviceName = data.service ? data.service.charAt(0).toUpperCase() + data.service.slice(1) : "Desconhecido";
-                        authSection.innerHTML = `<div class="flex items-center gap-4"><span class="text-sm">Logado como: <strong class="text-green-400">${data.display_name}</strong> via ${serviceName}</span><a href="/logout" class="btn btn-secondary text-xs">Logout</a></div>`;
-                        
-                        if (data.service === 'spotify') {
-                            createPlaylistButton.textContent = '💾 Criar no Spotify';
-                        } else if (data.service === 'youtube') {
-                            createPlaylistButton.textContent = '💾 Criar no YouTube';
-                        }
-                        
-                        loadSavedPlaylists();
-                    }
-                } catch (error) { console.error('Erro de login status:', error); }
-            }
+            // Initialize
+            checkLoginStatus();
+            setInputMode('upload');
 
-            async function loadSavedPlaylists() {
-                savedPlaylistsList.innerHTML = '';
-                savedPlaylistsPlaceholder.textContent = 'A carregar...';
-                // --- TODA ESTA LÓGICA FOI ADICIONADA ---
-                if (!currentUser || currentUser.service !== 'spotify') {
-                    savedPlaylistsPlaceholder.textContent = 'Suas guarde playlists locaimente.';
-                    return;
-                }
-                try {
-                    const response = await fetch('/api/local_playlists');
-                    const playlists = await response.json();
-                    
-                    if (response.ok && playlists.length > 0) {
-                        savedPlaylistsPlaceholder.classList.add('hidden');
-                        playlists.forEach(playlist => {
-                            const playlistItem = document.createElement('div');
-                            playlistItem.className = 'list-item-playlist flex justify-between items-center p-2 rounded';
-                            playlistItem.innerHTML = `
-                                <span class="flex-grow cursor-pointer view-playlist-btn" data-playlist-id="${playlist.id}" data-playlist-name="${playlist.name}">${playlist.name}</span>
-                                <div class="flex-shrink-0 flex gap-2">
-                                    <button class="rename-btn btn-secondary action-btn" data-playlist-id="${playlist.id}" data-playlist-name="${playlist.name}" title="Renomear">✏️</button>
-                                    <button class="delete-btn btn-danger action-btn" data-playlist-id="${playlist.id}" data-playlist-name="${playlist.name}" title="Apagar">🗑️</button>
-                                </div>`;
-                            savedPlaylistsList.appendChild(playlistItem);
-                        });
-                    } else {
-                        savedPlaylistsPlaceholder.textContent = 'Nenhuma playlist salva.';
-                        savedPlaylistsPlaceholder.classList.remove('hidden');
-                    }
-                } catch (error) { 
-                    console.error("Erro ao carregar playlists:", error);
-                    savedPlaylistsPlaceholder.textContent = 'Erro ao carregar playlists.';
-                }
-            }
-            
-            uploadButton.addEventListener('click', () => imageInput.click());
-            imageInput.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = e => imagePreviewContainer.innerHTML = `<img src="${e.target.result}" alt="Preview" class="w-full h-full object-cover rounded-lg">`;
-                    reader.readAsDataURL(file);
-                    uploadAndRecommend(file);
-                }
+            // Event Listeners
+            dropZone.addEventListener('click', () => imageInput.click());
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-green-500'); });
+            dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('border-green-500'); });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-green-500');
+                if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
             });
 
-            async function uploadAndRecommend(file) {
-                statusDiv.textContent = 'A analisar imagem e ambiente...';
-                playlistGlobalActions.classList.add('hidden');
-                playlistCreationActions.classList.add('hidden');
-                recommendationsList.innerHTML = '<p class="text-gray-500">A processar...</p>';
-                const formData = new FormData();
-                formData.append('image', file);
-                try {
-                    const response = await fetch('/api/recommend_by_image', { method: 'POST', body: formData });
-                    if (!response.ok) { 
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || `Erro do Servidor: ${response.status}`); 
-                    }
-                    const data = await response.json();
-                    statusDiv.textContent = 'Análise concluída. A gerar recomendações...';
-                    displayRecommendations(data, true);
-                } catch (error) { console.error('Erro:', error); statusDiv.textContent = `Erro: ${error.message}`; }
-            }
-
-             function displayRecommendations(data, isFeedbackEnabled = true) {
-                    currentTags = data.ambiente_detetado || [];
-                    currentRecommendations = data.recomendacoes || [];
-                    recommendationsTitle.textContent = data.playlist_title || `Recomendações`;
-                    
-                    playlistGlobalActions.classList.toggle('hidden', !isFeedbackEnabled || currentRecommendations.length === 0);
-                    playlistCreationActions.classList.toggle('hidden', !currentUser || currentRecommendations.length === 0);
-                    
-                    // --- CORREÇÃO AQUI: O botão agora aparece para qualquer utilizador logado ---
-                    saveLocalPlaylistButton.classList.toggle('hidden', !currentUser || currentRecommendations.length === 0);
-
-                    if (currentRecommendations.length > 0) {
-                        if (currentUser) {
-                            playlistNameInput.value = data.playlist_title || '';
-                            createPlaylistButton.classList.remove('hidden');
-                        }
-            
-            recommendationsList.innerHTML = '';
-            currentRecommendations.forEach(track => {
-                const listItem = document.createElement('div');
-                listItem.className = 'list-item flex justify-between items-center p-2';
-                const trackInfo = document.createElement('div');
-                trackInfo.innerHTML = `<p class="font-bold truncate">${track.titulo || 'N/A'}</p><p class="text-sm text-gray-400 truncate">${track.artista || 'N/A'}</p>`;
-                const actions = document.createElement('div');
-                actions.className = 'flex items-center gap-4';
-                
-                const platformId = track.spotify_id || track.id;
-                const service = track.service_name || track.service || (currentUser ? currentUser.service : 'spotify');
-                const previewLink = service === 'youtube'
-                    ? `https://www.youtube.com/watch?v=${platformId}`
-                    : `https://open.spotify.com/track/${platformId}`;
-
-                const feedbackButtonsHTML = isFeedbackEnabled && currentUser.service === 'spotify' ? `
-                    <button class="feedback-btn like-track-btn" title="Gosto" data-rating="1" data-track='${JSON.stringify(track)}'>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z"/></svg>
-                    </button>
-                    <button class="feedback-btn dislike-track-btn" title="Não Gosto" data-rating="-1" data-track='${JSON.stringify(track)}'>
-                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-1.113 2.175-.246 5.258 1.95 7.452l.748.818.748.818L8 15.01l.255-.286.748-.818.748-.818c2.196-2.194 3.063-5.277 1.95-7.452C13.486.878 10.4.28 8.717 2.01L8 2.748zM8 15C-7.333 4.868 3.279-2.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-2.042 23.333 4.867 8 15z"/></svg>
-                    </button>
-                ` : '';
-
-                actions.innerHTML = `
-                    ${feedbackButtonsHTML}
-                    <a href="${previewLink}" target="_blank" title="Abrir na plataforma" class="text-2xl hover:text-green-400 transition-colors">▶️</a>
-                `;
-                listItem.appendChild(trackInfo);
-                listItem.appendChild(actions);
-                recommendationsList.appendChild(listItem);
-            });
-        } else {
-            recommendationsList.innerHTML = '<p class="text-gray-500">Nenhuma música encontrada para este ambiente.</p>';
-        }
-    }
-
-            async function handleApiAction(url, options) {
-                statusDiv.textContent = 'A processar o seu pedido...';
-                try {
-                    const response = await fetch(url, options);
-                    const result = await response.json();
-                    if (!response.ok) throw new Error(result.error || `Erro ${response.status}`);
-                    alert(result.message || 'Operação bem-sucedida!');
-                    statusDiv.textContent = 'Pedido concluído.';
-                    return result;
-                } catch (error) {
-                    console.error('Erro na ação da API:', error);
-                    alert(`Erro: ${error.message}`);
-                    statusDiv.textContent = `Erro: ${error.message}`;
-                    return null;
-                }
-            }
-
-            createPlaylistButton.addEventListener('click', () => {
-                if (!currentUser) return;
-                const playlistName = playlistNameInput.value.trim() || recommendationsTitle.textContent;
-                if (!playlistName) { alert("Introduza um nome para a playlist."); return; }
-                
-                handleApiAction('/api/create_playlist', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: playlistName, tracks: currentRecommendations })
-                }).then(result => {
-                    if (result && result.success && currentUser.service === 'spotify') {
-                        loadSavedPlaylists();
-                    }
-                });
+            imageInput.addEventListener('change', (e) => {
+                if (e.target.files.length) handleFile(e.target.files[0]);
             });
 
-            saveLocalPlaylistButton.addEventListener('click', async () => {
-                if (!currentUser || currentUser.service !== 'spotify') { alert("Apenas para utilizadores Spotify."); return; }
-                const suggestedName = playlistNameInput.value.trim() || recommendationsTitle.textContent;
-                const playlistName = prompt("Nome para a nova playlist local:", suggestedName);
-                if (!playlistName) return;
-                const result = await handleApiAction('/api/local_playlists', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: playlistName, tracks: currentRecommendations })
-                });
-                if (result && result.success) loadSavedPlaylists();
-            });
+            analyzeNewButton.addEventListener('click', resetUI);
+            reuploadBtn.addEventListener('click', () => imageInput.click());
+            modeUploadBtn.addEventListener('click', () => setInputMode('upload'));
+            modeCameraBtn.addEventListener('click', () => setInputMode('camera'));
+            startCameraBtn.addEventListener('click', startCamera);
+            captureCameraBtn.addEventListener('click', captureFromCamera);
+            stopCameraBtn.addEventListener('click', stopCamera);
+            window.addEventListener('beforeunload', stopCamera);
 
             refreshButton.addEventListener('click', async () => {
                 if (currentTags.length === 0) return;
-                statusDiv.textContent = `A refazer recomendações...`;
-                recommendationsList.innerHTML = '<p class="text-gray-500">A processar...</p>';
+                setLoading(true, "Refazendo recomendações...");
                 try {
                     const response = await fetch('/api/recommend_from_tags', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -307,79 +359,260 @@
                     });
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.error);
-                    statusDiv.textContent = 'Recomendações atualizadas!';
-                    displayRecommendations(data, true);
-                } catch (error) { console.error('Erro ao refazer:', error); statusDiv.textContent = `Erro: ${error.message}`; }
+                    displayRecommendations(data);
+                } catch (error) {
+                    alert('Erro ao atualizar: ' + error.message);
+                } finally {
+                    setLoading(false);
+                }
             });
-            
-            recommendationsList.addEventListener('click', async (event) => {
-                const target = event.target;
-                if (target.closest('.feedback-btn')) {
-                    const button = target.closest('.feedback-btn');
-                    if (!currentUser || currentUser.service !== 'spotify') { return; }
-                    button.style.transform = 'scale(1.5)';
-                    setTimeout(() => { button.style.transform = 'scale(1)'; }, 200);
-                    const rating = parseInt(button.dataset.rating, 10);
-                    const trackInfo = JSON.parse(button.dataset.track);
-                    await handleApiAction('/api/feedback', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ track_info: trackInfo, rating: rating })
+
+            createPlaylistButton.addEventListener('click', () => {
+                if (!currentUser) { alert("Faça login primeiro!"); return; }
+                const name = playlistNameInput.value.trim() || playlistTitle.textContent;
+                
+                // Show visual feedback
+                const originalText = createPlaylistButton.innerHTML;
+                createPlaylistButton.innerHTML = '<span class="animate-spin">⌛</span> Salvando...';
+                
+                fetch('/api/create_playlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, tracks: currentRecommendations })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) alert(`Playlist salva no ${currentUser.service === 'spotify' ? 'Spotify' : 'YouTube'}!`);
+                    else alert('Erro: ' + data.error);
+                })
+                .catch(err => alert('Erro: ' + err.message))
+                .finally(() => createPlaylistButton.innerHTML = originalText);
+            });
+
+            // Functions
+            async function checkLoginStatus() {
+                try {
+                    const response = await fetch('/api/user_status');
+                    const data = await response.json();
+                    currentUser = data.logged_in ? data : null;
+                    
+                    if (currentUser) {
+                        const serviceName = currentUser.service === 'spotify' ? 'Spotify' : 'YouTube';
+                        const colorClass = currentUser.service === 'spotify' ? 'text-green-500' : 'text-red-500';
+                        const btnColor = currentUser.service === 'spotify' ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500';
+                        
+                        authSection.innerHTML = `
+                            <div class="flex items-center gap-4">
+                                <span class="text-sm text-gray-400 hidden sm:inline">Olá, <strong class="${colorClass}">${currentUser.display_name}</strong></span>
+                                <a href="/logout" class="text-xs border border-white/20 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors">Sair</a>
+                            </div>
+                        `;
+                        
+                        createPlaylistButton.className = `px-4 py-2 ${btnColor} text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-2`;
+                        createPlaylistButton.innerHTML = currentUser.service === 'spotify' 
+                            ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.669 11.538a.498.498 0 0 1-.686.165c-1.879-1.147-4.243-1.407-7.028-.77a.499.499 0 0 1-.222-.973c3.048-.696 5.662-.397 7.77.892a.5.5 0 0 1 .166.686zm.979-2.178a.624.624 0 0 1-.858.205c-2.15-1.321-5.428-1.704-7.972-.932a.625.625 0 0 1-.362-1.194c2.905-.881 6.517-.454 8.986 1.063a.624.624 0 0 1 .206.858zm.084-2.268C10.154 5.56 5.9 5.419 3.438 6.166a.748.748 0 1 1-.434-1.432c2.825-.857 7.523-.692 10.492 1.07a.747.747 0 1 1-.764 1.288z"/></svg> Salvar no Spotify`
+                            : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.051 1.999h.089c.822.003 4.987.033 6.11.335a2.01 2.01 0 0 1 1.415 1.42c.101.38.172.883.22 1.402l.01.104.022.26.008.104c.065.914.073 1.77.074 1.957v.075c-.001.194-.01 1.108-.082 2.06l-.008.105-.022.26-.01.104c-.048.519-.119 1.023-.22 1.402a2.007 2.007 0 0 1-1.415 1.42c-1.16.312-5.569.334-6.18.335h-.142c-.309 0-1.587-.006-2.927-.052l-.17-.006-.087-.004-.171-.007-.086-.003c-1.702-.065-2.887-.225-3.465-.417a2.007 2.007 0 0 1-1.414-1.419c-.111-.417-.185-.986-.235-1.558L.09 9.82l-.008-.104A31.4 31.4 0 0 1 0 7.68v-.123c.002-.215.01-.958.064-1.778l.007-.103.022-.26.01-.104c.048-.519.119-1.023.22-1.402a2.007 2.007 0 0 1 1.415-1.42c.487-.13 1.544-.21 2.654-.26l.17-.007.086-.003.171-.007.087-.004.17-.006.087-.004c1.34-.046 2.617-.052 2.927-.052zM6.425 10.443V4.817l4.15 2.813-4.15 2.813z"/></svg> Salvar no YouTube`;
+                    } else {
+                        window.location.href = '/';
+                    }
+                } catch (error) { console.error('Erro de login status:', error); }
+            }
+
+            // Mobile Menu Logic
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const closeMenuBtn = document.getElementById('close-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            window.toggleMobileMenu = function() {
+                mobileMenu.classList.toggle('translate-x-full');
+                document.body.classList.toggle('overflow-hidden');
+            }
+
+            if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+            if (closeMenuBtn) closeMenuBtn.addEventListener('click', toggleMobileMenu);
+
+            function setInputMode(mode) {
+                currentInputMode = mode;
+                const isCameraMode = mode === 'camera';
+                uploadSection.classList.toggle('hidden', isCameraMode);
+                cameraSection.classList.toggle('hidden', !isCameraMode);
+
+                modeUploadBtn.className = `flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${isCameraMode ? 'text-gray-400 hover:text-white' : 'bg-white text-black'}`;
+                modeCameraBtn.className = `flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${isCameraMode ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`;
+
+                if (!isCameraMode) {
+                    stopCamera();
+                } else {
+                    cameraStatus.textContent = cameraStream ? 'Câmera ativa. Capture para gerar recomendações.' : 'Selecione "Abrir Câmera" para começar.';
+                }
+            }
+
+            async function startCamera() {
+                if (cameraStream) return;
+                try {
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                    cameraVideo.srcObject = cameraStream;
+                    await cameraVideo.play();
+                    captureCameraBtn.disabled = false;
+                    stopCameraBtn.disabled = false;
+                    cameraStatus.textContent = 'Câmera ativa. Capture para gerar recomendações.';
+                } catch (error) {
+                    cameraStatus.textContent = 'Não foi possível acessar a câmera.';
+                    alert('Não foi possível acessar a câmera. Verifique as permissões do navegador.');
+                }
+            }
+
+            function stopCamera() {
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                    cameraStream = null;
+                }
+                cameraVideo.srcObject = null;
+                captureCameraBtn.disabled = true;
+                stopCameraBtn.disabled = true;
+                if (currentInputMode === 'camera') {
+                    cameraStatus.textContent = 'Selecione "Abrir Câmera" para começar.';
+                }
+            }
+
+            async function captureFromCamera() {
+                if (!cameraStream) {
+                    alert('Abra a câmera antes de capturar.');
+                    return;
+                }
+                const width = cameraVideo.videoWidth;
+                const height = cameraVideo.videoHeight;
+                if (!width || !height) {
+                    alert('A câmera ainda não está pronta. Tente novamente.');
+                    return;
+                }
+                cameraCanvas.width = width;
+                cameraCanvas.height = height;
+                cameraCanvas.getContext('2d').drawImage(cameraVideo, 0, 0, width, height);
+                const blob = await new Promise(resolve => cameraCanvas.toBlob(resolve, 'image/jpeg', 0.92));
+                if (!blob) {
+                    alert('Não foi possível capturar a imagem da câmera.');
+                    return;
+                }
+                stopCamera();
+                const capturedFile = new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
+                handleFile(capturedFile);
+            }
+
+
+            function handleFile(file) {
+                // Preview
+                const reader = new FileReader();
+                reader.onload = e => {
+                    imagePreview.src = e.target.result;
+                    resultImage.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                    dropZoneContent.classList.add('opacity-0');
+                };
+                reader.readAsDataURL(file);
+
+                // Upload
+                uploadAndRecommend(file);
+            }
+
+            async function uploadAndRecommend(file) {
+                setLoading(true, "Analisando imagem e gerando playlist...");
+                const formData = new FormData();
+                formData.append('image', file);
+                try {
+                    const response = await fetch('/api/recommend_by_image', { method: 'POST', body: formData });
+                    if (!response.ok) throw new Error((await response.json()).error);
+                    const data = await response.json();
+                    displayRecommendations(data);
+                    
+                    // Transition UI
+                    uploadSection.classList.add('opacity-0', 'hidden');
+                    resultsSection.classList.remove('hidden');
+                    // Small delay to allow display:block to apply before opacity transition
+                    setTimeout(() => resultsSection.classList.remove('opacity-0'), 50);
+
+                } catch (error) {
+                    alert('Erro: ' + error.message);
+                    setLoading(false);
+                    dropZoneContent.classList.remove('opacity-0');
+                    imagePreview.classList.add('hidden');
+                }
+            }
+
+            function displayRecommendations(data) {
+                currentTags = data.ambiente_detetado || [];
+                currentRecommendations = data.recomendacoes || [];
+                
+                playlistTitle.textContent = data.playlist_title || "Minha Playlist";
+                playlistNameInput.value = data.playlist_title || "";
+                
+                // Render Tags
+                tagsContainer.innerHTML = currentTags.map(tag => 
+                    `<span class="px-3 py-1 rounded-full bg-white/10 text-xs font-medium text-green-400 border border-green-500/20">${tag}</span>`
+                ).join('');
+
+                // Render Tracks
+                recommendationsList.innerHTML = '';
+                if (currentRecommendations.length === 0) {
+                    recommendationsList.innerHTML = '<p class="text-center text-gray-500 py-8">Nenhuma música encontrada.</p>';
+                } else {
+                    currentRecommendations.forEach((track, index) => {
+                        const div = document.createElement('div');
+                        div.className = 'track-row flex items-center justify-between p-3 rounded-lg transition-colors cursor-default group';
+                        
+                        // Fallback duration
+                        const duration = track.duration || "3:45"; 
+                        
+                        const platformId = track.spotify_id || track.id;
+                        const service = track.service_name || track.service || (currentUser ? currentUser.service : 'spotify');
+                        const link = service === 'youtube' ? `https://www.youtube.com/watch?v=${platformId}` : `https://open.spotify.com/track/${platformId}`;
+
+                        div.innerHTML = `
+                            <div class="flex items-center gap-4 overflow-hidden">
+                                <span class="text-gray-500 w-6 text-center text-sm font-mono">${index + 1}</span>
+                                <div class="w-10 h-10 bg-gray-800 rounded flex items-center justify-center flex-shrink-0 text-gray-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13c0-1.104 1.12-2 2.5-2s2.5.896 2.5 2zm9-2c0 1.105-1.12 2-2.5 2s-2.5-.895-2.5-2 1.12-2 2.5-2 2.5.895 2.5 2z"/><path fill-rule="evenodd" d="M14 11V2h1v9h-1zM6 3v10H5V3h1z"/><path d="M5 2.905a1 1 0 0 1 .9-.995l8-.8a1 1 0 0 1 1.1.995V3L5 4V2.905z"/></svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-bold text-sm truncate text-white group-hover:text-green-400 transition-colors">${track.titulo}</p>
+                                    <p class="text-xs text-gray-400 truncate">${track.artista}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4 text-sm text-gray-500">
+                                <span>${duration}</span>
+                                <a href="${link}" target="_blank" class="text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/></svg>
+                                </a>
+                            </div>
+                        `;
+                        recommendationsList.appendChild(div);
                     });
                 }
-            });
-            
-            savedPlaylistsList.addEventListener('click', async (event) => {
-                const target = event.target;
-                const playlistItem = target.closest('.list-item-playlist');
-                if (!playlistItem) return;
-
-                const renameButton = playlistItem.querySelector('.rename-btn');
-                const deleteButton = playlistItem.querySelector('.delete-btn');
-                const viewButton = playlistItem.querySelector('.view-playlist-btn');
                 
-                const playlistId = renameButton.dataset.playlistId;
-                const oldName = renameButton.dataset.playlistName;
-
-                if (target === renameButton) {
-                    const newName = prompt(`Digite o novo nome para a playlist "${oldName}":`);
-                    if (newName && newName.trim() !== '') {
-                        const success = await handleApiAction(`/api/rename_local_playlist/${playlistId}`, {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ new_name: newName.trim() })
-                        });
-                        if (success) loadSavedPlaylists();
-                    }
-                } else if (target === deleteButton) {
-                    if (confirm(`Tem a certeza que quer apagar a playlist "${oldName}"?`)) {
-                        const success = await handleApiAction(`/api/delete_local_playlist/${playlistId}`, { method: 'DELETE' });
-                        if (success) loadSavedPlaylists();
-                    }
-                } else if (target === viewButton) {
-                    statusDiv.textContent = `A carregar músicas da playlist...`;
-                    try {
-                        const response = await fetch(`/api/local_playlists/${playlistId}`);
-                        const tracks = await response.json();
-                        if (!response.ok) throw new Error(tracks.error);
-                        displayRecommendations({ 
-                            recomendacoes: tracks, 
-                            ambiente_detetado: [],
-                            playlist_title: `Conteúdo de: ${oldName}`
-                        }, false);
-                    } catch (error) { console.error('Erro ao carregar músicas:', error); }
-                }
-            });
-            async function handlePlaylistFeedback(rating) {
-                if (!currentUser || currentUser.service !== 'spotify') { return; }
-                if (currentRecommendations.length === 0) return;
-                await handleApiAction('/api/playlist_feedback', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tracks: currentRecommendations, rating: rating })
-                });
+                setLoading(false);
             }
-            likePlaylistButton.addEventListener('click', () => handlePlaylistFeedback(1));
-            dislikePlaylistButton.addEventListener('click', () => handlePlaylistFeedback(-1));
 
-            checkLoginStatus();
+            function setLoading(isLoading, text) {
+                if (isLoading) {
+                    loadingText.textContent = text || "Carregando...";
+                    loadingState.classList.remove('hidden');
+                } else {
+                    loadingState.classList.add('hidden');
+                }
+            }
+
+            function resetUI() {
+                resultsSection.classList.add('opacity-0', 'hidden');
+                uploadSection.classList.remove('hidden');
+                cameraSection.classList.add('hidden');
+                setTimeout(() => uploadSection.classList.remove('opacity-0'), 50);
+                setInputMode(currentInputMode);
+                
+                imageInput.value = '';
+                imagePreview.src = '';
+                imagePreview.classList.add('hidden');
+                dropZoneContent.classList.remove('opacity-0');
+            }
         });
     </script>
 </body>

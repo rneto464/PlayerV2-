@@ -4,7 +4,6 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
 
 
-# Importação corrigida (com ponto) para encontrar o ficheiro no mesmo pacote
 from . import config_credentials as creds
 
 class SpotifyAuthManager:
@@ -13,11 +12,17 @@ class SpotifyAuthManager:
     CACHE_FILE_PREFIX = ".spotify_token_cache-"
 
     def __init__(self):
-        if not creds or creds.SPOTIPY_CLIENT_ID == 'SEU_CLIENT_ID_AQUI':
-            raise ValueError("Credenciais do Spotify não configuradas em 'app/config_credentials.py'")
-        
-        self.client_id = creds.SPOTIPY_CLIENT_ID
-        self.client_secret = creds.SPOTIPY_CLIENT_SECRET
+        client_id = os.environ.get("SPOTIPY_CLIENT_ID") or getattr(creds, "SPOTIPY_CLIENT_ID", "")
+        client_secret = os.environ.get("SPOTIPY_CLIENT_SECRET") or getattr(creds, "SPOTIPY_CLIENT_SECRET", "")
+
+        if not client_id or not client_secret:
+            raise ValueError(
+                "Credenciais do Spotify não configuradas. "
+                "Defina SPOTIPY_CLIENT_ID e SPOTIPY_CLIENT_SECRET nas variáveis de ambiente."
+            )
+
+        self.client_id = client_id
+        self.client_secret = client_secret
     
     def get_app_client(self):
         """Retorna um cliente Spotipy para buscas públicas (Client Credentials)."""

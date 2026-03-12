@@ -304,6 +304,10 @@ def community():
     if 'internal_user_id' not in session: return redirect('/')
     return render_template('community.html')
 
+@app.route('/demo')
+def demo():
+    return render_template('demo.html')
+
 @app.route('/login/spotify')
 def login_spotify():
     ctx = get_app_context()

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayerV2 - Demonstração</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        background: '#0a0a0a',
+                        surface: '#121212',
+                        card: '#181818',
+                        spotify: '#1DB954',
+                        youtube: '#FF0000',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #050505;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(to right, #22c55e, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass-panel {
+            background: rgba(24, 24, 24, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .visualizer-bar {
+            width: 6px;
+            background: linear-gradient(to top, #22c55e, #ef4444);
+            border-radius: 9999px;
+            animation: bounce 1s infinite ease-in-out alternate;
+        }
+
+        @keyframes bounce {
+            0% { height: 10px; opacity: 0.5; }
+            100% { height: 60px; opacity: 1; }
+        }
+
+        .visualizer-bar:nth-child(odd) { animation-duration: 0.8s; }
+        .visualizer-bar:nth-child(even) { animation-duration: 1.2s; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #444; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Navbar -->
+    <nav class="w-full py-6 px-8 flex justify-between items-center fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-md border-b border-white/5">
+        <div class="flex items-center gap-3">
+            <a href="/" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-red-500 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 16 16">
+                        <path d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13c0-1.104 1.12-2 2.5-2s2.5.896 2.5 2zm9-2c0 1.105-1.12 2-2.5 2s-2.5-.895-2.5-2 1.12-2 2.5-2 2.5.895 2.5 2z"/>
+                        <path fill-rule="evenodd" d="M14 11V2h1v9h-1zM6 3v10H5V3h1z"/>
+                        <path d="M5 2.905a1 1 0 0 1 .9-.995l8-.8a1 1 0 0 1 1.1.995V3L5 4V2.905z"/>
+                    </svg>
+                </div>
+                <span class="font-bold text-xl tracking-tight text-white">PlayerV2</span>
+            </a>
+        </div>
+        <div class="hidden md:flex items-center gap-8">
+            <a href="/community" class="text-sm font-medium text-gray-400 hover:text-white transition-colors">Comunidade</a>
+        </div>
+        <div>
+            <a href="/" class="px-6 py-2 rounded-full text-sm border border-white/10 hover:bg-white/5 transition-colors">Voltar</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow pt-28 pb-12 px-4 flex flex-col items-center justify-center">
+        <div class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Veja a <span class="gradient-text">Mágica</span> Acontecer</h1>
+            <p class="text-gray-400 max-w-xl mx-auto">Escolha uma imagem abaixo e veja como a nossa IA analisa a atmosfera para criar a playlist perfeita.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-6xl">
+            
+            <!-- Selection Area -->
+            <div class="space-y-6">
+                <h3 class="text-xl font-semibold flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center text-xs border border-green-500/50">1</span>
+                    Escolha um Cenário
+                </h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="runDemo('party')" class="group relative aspect-video rounded-xl overflow-hidden border-2 border-transparent hover:border-green-500 transition-all focus:outline-none focus:border-green-500">
+                        <img src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=500&q=80" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Festa">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-all"></div>
+                        <span class="absolute bottom-3 left-3 font-bold text-white text-shadow">Festa Noturna</span>
+                    </button>
+                    <button onclick="runDemo('relax')" class="group relative aspect-video rounded-xl overflow-hidden border-2 border-transparent hover:border-green-500 transition-all focus:outline-none focus:border-green-500">
+                        <img src="https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=500&q=80" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Relax">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-all"></div>
+                        <span class="absolute bottom-3 left-3 font-bold text-white text-shadow">Relax & Natureza</span>
+                    </button>
+                    <button onclick="runDemo('gym')" class="group relative aspect-video rounded-xl overflow-hidden border-2 border-transparent hover:border-green-500 transition-all focus:outline-none focus:border-green-500">
+                        <img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=500&q=80" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Treino">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-all"></div>
+                        <span class="absolute bottom-3 left-3 font-bold text-white text-shadow">Treino Intenso</span>
+                    </button>
+                    <button onclick="runDemo('travel')" class="group relative aspect-video rounded-xl overflow-hidden border-2 border-transparent hover:border-green-500 transition-all focus:outline-none focus:border-green-500">
+                        <img src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=500&q=80" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Viagem">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-all"></div>
+                        <span class="absolute bottom-3 left-3 font-bold text-white text-shadow">Road Trip</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Result Area -->
+            <div class="glass-panel rounded-2xl p-1 relative overflow-hidden min-h-[400px]">
+                
+                <!-- Placeholder State -->
+                <div id="state-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-center p-8 transition-opacity duration-300">
+                    <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#666" viewBox="0 0 16 16">
+                            <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                            <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+                        </svg>
+                    </div>
+                    <p class="text-gray-500">Selecione uma imagem ao lado para iniciar a análise.</p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="state-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md z-10 opacity-0 pointer-events-none transition-opacity duration-300">
+                    <div class="flex gap-1 h-16 items-end mb-4">
+                        <div class="visualizer-bar"></div>
+                        <div class="visualizer-bar"></div>
+                        <div class="visualizer-bar"></div>
+                        <div class="visualizer-bar"></div>
+                        <div class="visualizer-bar"></div>
+                    </div>
+                    <p class="text-green-400 font-mono text-sm tracking-wider animate-pulse">ANALISANDO IMAGEM...</p>
+                    <p id="loading-text" class="text-xs text-gray-500 mt-2">Identificando objetos...</p>
+                </div>
+
+                <!-- Result Content -->
+                <div id="state-result" class="h-full w-full bg-[#121212] rounded-xl flex flex-col opacity-0 pointer-events-none transition-opacity duration-500">
+                    <!-- Header with Image & Info -->
+                    <div class="p-6 bg-gradient-to-b from-green-900/20 to-[#121212] flex items-end gap-6">
+                        <img id="result-img" src="" class="w-32 h-32 rounded-lg shadow-2xl object-cover">
+                        <div class="mb-1">
+                            <span class="text-xs font-bold uppercase tracking-widest text-green-400 mb-1 block">Playlist Gerada</span>
+                            <h2 id="result-title" class="text-3xl font-bold text-white mb-2">Título da Playlist</h2>
+                            <div id="result-tags" class="flex flex-wrap gap-2">
+                                <!-- Tags injected here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tracklist -->
+                    <div class="flex-grow p-4 overflow-y-auto custom-scrollbar">
+                        <table class="w-full text-left text-sm text-gray-400">
+                            <thead class="border-b border-white/10 text-xs uppercase tracking-wider">
+                                <tr>
+                                    <th class="pb-2 pl-2 w-10">#</th>
+                                    <th class="pb-2">Título</th>
+                                    <th class="pb-2 text-right pr-4"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/></svg></th>
+                                </tr>
+                            </thead>
+                            <tbody id="track-list" class="divide-y divide-white/5">
+                                <!-- Tracks injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="p-4 border-t border-white/5 text-center">
+                        <a href="/#platforms" class="inline-block px-8 py-3 rounded-full bg-green-600 hover:bg-green-500 text-white font-bold transition-all shadow-lg hover:shadow-green-500/30">
+                            Criar a Minha Playlist
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const demoData = {
+            'party': {
+                img: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=500&q=80',
+                title: 'Noite de Festa',
+                tags: ['Festa', 'Energia', 'Dança', 'Luzes', 'Noturno'],
+                tracks: [
+                    { title: 'Blinding Lights', artist: 'The Weeknd', time: '3:20' },
+                    { title: 'Levitating', artist: 'Dua Lipa', time: '3:23' },
+                    { title: 'Uptown Funk', artist: 'Mark Ronson', time: '4:30' },
+                    { title: 'Can\'t Stop the Feeling!', artist: 'Justin Timberlake', time: '3:56' },
+                    { title: 'Shut Up and Dance', artist: 'Walk the Moon', time: '3:19' }
+                ]
+            },
+            'relax': {
+                img: 'https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=500&q=80',
+                title: 'Vibes Zen',
+                tags: ['Calma', 'Natureza', 'Paz', 'Meditativo', 'Manhã'],
+                tracks: [
+                    { title: 'Weightless', artist: 'Marconi Union', time: '8:00' },
+                    { title: 'River Flows in You', artist: 'Yiruma', time: '3:08' },
+                    { title: 'Sunset Lover', artist: 'Petit Biscuit', time: '3:57' },
+                    { title: 'Holocene', artist: 'Bon Iver', time: '5:37' },
+                    { title: 'Clair de Lune', artist: 'Claude Debussy', time: '5:09' }
+                ]
+            },
+            'gym': {
+                img: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=500&q=80',
+                title: 'Foco no Treino',
+                tags: ['Treino', 'Força', 'Motivação', 'Academia', 'Suor'],
+                tracks: [
+                    { title: 'Eye of the Tiger', artist: 'Survivor', time: '4:04' },
+                    { title: 'Stronger', artist: 'Kanye West', time: '5:11' },
+                    { title: 'Power', artist: 'Kanye West', time: '4:52' },
+                    { title: 'Lose Yourself', artist: 'Eminem', time: '5:26' },
+                    { title: 'Can\'t Hold Us', artist: 'Macklemore', time: '4:18' }
+                ]
+            },
+            'travel': {
+                img: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=500&q=80',
+                title: 'Estrada & Aventura',
+                tags: ['Viagem', 'Aventura', 'Estrada', 'Liberdade', 'Montanhas'],
+                tracks: [
+                    { title: 'Riptide', artist: 'Vance Joy', time: '3:24' },
+                    { title: 'Adventure of a Lifetime', artist: 'Coldplay', time: '4:23' },
+                    { title: 'On Top of the World', artist: 'Imagine Dragons', time: '3:12' },
+                    { title: 'Home', artist: 'Edward Sharpe', time: '5:02' },
+                    { title: 'Send Me On My Way', artist: 'Rusted Root', time: '4:34' }
+                ]
+            }
+        };
+
+        function runDemo(type) {
+            const data = demoData[type];
+            if (!data) return;
+
+            // UI Elements
+            const placeholder = document.getElementById('state-placeholder');
+            const loading = document.getElementById('state-loading');
+            const result = document.getElementById('state-result');
+            const loadingText = document.getElementById('loading-text');
+
+            // Reset
+            placeholder.style.opacity = '0';
+            result.style.opacity = '0';
+            result.style.pointerEvents = 'none';
+            
+            // Show Loading
+            loading.classList.remove('opacity-0', 'pointer-events-none');
+            
+            // Simulate Analysis Steps
+            setTimeout(() => { loadingText.innerText = "Detectando cores e iluminação..."; }, 800);
+            setTimeout(() => { loadingText.innerText = "Analisando emoções faciais..."; }, 1600);
+            setTimeout(() => { loadingText.innerText = "Buscando faixas correspondentes..."; }, 2400);
+
+            // Show Result
+            setTimeout(() => {
+                loading.classList.add('opacity-0', 'pointer-events-none');
+                
+                // Populate Result
+                document.getElementById('result-img').src = data.img;
+                document.getElementById('result-title').innerText = data.title;
+                
+                // Tags
+                const tagsContainer = document.getElementById('result-tags');
+                tagsContainer.innerHTML = data.tags.map(tag => 
+                    `<span class="px-2 py-1 bg-white/10 rounded text-xs font-medium text-gray-300">${tag}</span>`
+                ).join('');
+
+                // Tracks
+                const trackList = document.getElementById('track-list');
+                trackList.innerHTML = data.tracks.map((track, index) => `
+                    <tr class="hover:bg-white/5 transition-colors group">
+                        <td class="pl-2 py-3 text-green-500 font-mono text-xs">${index + 1}</td>
+                        <td class="py-3">
+                            <div class="font-medium text-white">${track.title}</div>
+                            <div class="text-xs text-gray-500">${track.artist}</div>
+                        </td>
+                        <td class="py-3 text-right pr-4 text-xs font-mono">${track.time}</td>
+                    </tr>
+                `).join('');
+
+                result.classList.remove('opacity-0', 'pointer-events-none');
+            }, 3200);
+        }
+    </script>
+</body>
+</html>
